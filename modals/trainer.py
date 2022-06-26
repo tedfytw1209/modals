@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from networks.blstm import BiLSTM
+from networks.blstm import BiLSTM,LSTM
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
@@ -45,6 +45,16 @@ def build_model(model_name, vocab, n_class, z_size=2):
                   'rnn_drop': 0.2,
                   'fc_drop': 0.5}
         net = BiLSTM(config)
+        z_size = 256
+    if model_name == 'lstm':
+        config = {
+                  'n_hidden': 128,
+                  'n_output': n_class,
+                  'n_layers': 1,
+                  'b_dir': False,
+                  'rnn_drop': 0.2,
+                  'fc_drop': 0.5}
+        net = LSTM(config)
         z_size = 256
     else:
         ValueError(f'Invalid model name={model_name}')
@@ -96,7 +106,7 @@ class TextModelTrainer(object):
 
         self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
-            self.optimizer = optim.Adam(self.net.parameters(), 0.001)
+            self.optimizer = optim.Adam(self.net.parameters(), 0.01) #!!!change to follow paper, need change
             self.loss_dict = {'train': [], 'valid': []}
 
             if hparams['use_modals']:
