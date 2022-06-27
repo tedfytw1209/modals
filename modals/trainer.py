@@ -70,9 +70,9 @@ class Discriminator(nn.Module):
     def __init__(self, z_size):
         super(Discriminator, self).__init__()
         self.z_size = z_size
-        self.fc1 = nn.Linear(z_size, 512)
-        self.fc2 = nn.Linear(512, 128)
-        self.fc3 = nn.Linear(128, 1)
+        self.fc1 = nn.Linear(z_size, 256) #!follow paper
+        self.fc2 = nn.Linear(256, 256)
+        self.fc3 = nn.Linear(256, 1)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
@@ -106,7 +106,7 @@ class TextModelTrainer(object):
 
         self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
-            self.optimizer = optim.Adam(self.net.parameters(), 0.01) #!!!change to follow paper, need change
+            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #!!!follow paper
             self.loss_dict = {'train': [], 'valid': []}
 
             if hparams['use_modals']:
@@ -130,7 +130,7 @@ class TextModelTrainer(object):
                 self.EPS = 1e-15
                 self.D = Discriminator(self.z_size)
                 self.D = self.D.to(self.device)
-                self.D_optimizer = optim.SGD(self.D.parameters(), lr=0.01,
+                self.D_optimizer = optim.Adam(self.D.parameters(), lr=0.01, #!follow paper
                                              momentum=hparams['momentum'], weight_decay=hparams['wd'])
                 # self.G_optimizer = optim.Adam(self.net.parameters(), lr=0.001)
 
@@ -161,13 +161,13 @@ class TextModelTrainer(object):
         self.net, self.z_size, self.file_name = build_model(
             self.hparams['model_name'], self.vocab, len(self.classes), z_size)
         self.net = self.net.to(self.device)
-        self.optimizer = optim.Adam(self.net.parameters(), 0.001)
+        self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr'])
         self.loss_dict = {'train': [], 'valid': []}
 
     def reset_discriminator(self, z_size=256):
         self.D = Discriminator(z_size)
         self.D = self.D.to(self.device)
-        self.D_optimizer = optim.SGD(self.D.parameters(), lr=0.01,
+        self.D_optimizer = optim.Adam(self.D.parameters(), lr=0.01, #!follow paper
                                      momentum=self.hparams['momentum'], weight_decay=self.hparams['wd'])
 
     def update_policy(self, policy):
