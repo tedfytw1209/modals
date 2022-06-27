@@ -74,7 +74,7 @@ def search():
         custom_explore_fn=explore,
         log_config=True)
 
-    tune.run(
+    analysis = tune.run(
         RayModel,
         name=hparams['ray_name'],
         scheduler=pbt,
@@ -88,7 +88,9 @@ def search():
         local_dir=FLAGS.ray_dir,
         num_samples=FLAGS.num_samples
     )
-
+    print("Best hyperparameters found were: ")
+    print(analysis.best_config)
+    print(analysis.best_trial)
 
 if __name__ == "__main__":
     search()
