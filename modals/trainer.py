@@ -86,7 +86,7 @@ class TextModelTrainer(object):
     def __init__(self, hparams, name=''):
         self.hparams = hparams
         print(hparams)
-
+        self.multilabel = False
         self.name = name
 
         random.seed(0)
@@ -406,6 +406,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(hparams)
         self.name = name
         self.vocab = None #no need
+        self.multilabel = hparams['multilabel']
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
@@ -418,7 +419,10 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(self.device)
         self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
         self.net = self.net.to(self.device)
-        self.criterion = nn.CrossEntropyLoss()
+        if self.multilabel:
+            self.criterion = nn.BCEWithLogitsLoss(reduce='mean')
+        else:
+            self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
             self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #!!!follow paper
             self.loss_dict = {'train': [], 'valid': []}
