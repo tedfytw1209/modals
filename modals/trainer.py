@@ -11,7 +11,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
 from utility import mixup_criterion, mixup_data
 
-from modals.data_util import get_text_dataloaders
+from modals.data_util import get_text_dataloaders,get_ts_dataloaders
 from modals.policy import PolicyManager, RawPolicy
 
 if torch.cuda.is_available():
@@ -131,7 +131,7 @@ class TextModelTrainer(object):
                 self.D = Discriminator(self.z_size)
                 self.D = self.D.to(self.device)
                 self.D_optimizer = optim.Adam(self.D.parameters(), lr=0.01, #!follow paper
-                                             momentum=hparams['momentum'], weight_decay=hparams['wd'])
+                                              weight_decay=hparams['wd'])
                 # self.G_optimizer = optim.Adam(self.net.parameters(), lr=0.001)
 
             if hparams['metric_learning']:
@@ -168,7 +168,7 @@ class TextModelTrainer(object):
         self.D = Discriminator(z_size)
         self.D = self.D.to(self.device)
         self.D_optimizer = optim.Adam(self.D.parameters(), lr=0.01, #!follow paper
-                                     momentum=self.hparams['momentum'], weight_decay=self.hparams['wd'])
+                                     weight_decay=self.hparams['wd'])
 
     def update_policy(self, policy):
         raw_policy = RawPolicy(mode='train', num_epochs=1,
@@ -302,7 +302,7 @@ class TextModelTrainer(object):
         total = 0
         test_loss = 0.0
         data_loader = self.valid_loader if mode == 'valid' else self.test_loader
-
+        confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
         with torch.no_grad():
             for batch_idx, batch in enumerate(data_loader):
                 inputs, seq_lens, labels = batch.text[0].to(
@@ -318,11 +318,15 @@ class TextModelTrainer(object):
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
                 correct += (predicted == labels).sum().item()
-
+                for t, p in zip(labels.view(-1), predicted.view(-1)):
+                    confusion_matrix[t.long(), p.long()] += 1
                 torch.cuda.empty_cache()
 
             print(
                 f'| ({mode}) Epoch #{cur_epoch}\t Loss: {test_loss/total:.4f}\t Acc@1: {correct/total:.4f}')
+            #class-wise
+            cw_acc = confusion_matrix.diag()/confusion_matrix.sum(1)
+            print(f'class-wise Acc: ',cw_acc)
 
         return correct/total, test_loss/total
 
@@ -396,3 +400,61 @@ class TextModelTrainer(object):
         self.pm.update_policy(new_policy)
         return
 
+class TSeriesModelTrainer(TextModelTrainer):
+    def __init__(self, hparams, name=''):
+        self.hparams = hparams
+        print(hparams)
+        self.name = name
+        self.vocab = None #no need
+        random.seed(0)
+        self.train_loader, self.valid_loader, self.test_loader, self.classes = get_ts_dataloaders(
+            hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
+            subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'])
+        random.seed()
+        self.device = torch.device(
+            hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
+        print()
+        print('### Device ###')
+        print(self.device)
+        self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
+        self.net = self.net.to(self.device)
+        self.criterion = nn.CrossEntropyLoss()
+        if hparams['mode'] in ['train', 'search']:
+            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #!!!follow paper
+            self.loss_dict = {'train': [], 'valid': []}
+            if hparams['use_modals']:
+                print("\n=> ### Policy ###")
+                raw_policy = RawPolicy(mode=hparams['mode'], num_epochs=hparams['num_epochs'],
+                                       hp_policy=hparams['hp_policy'], policy_path=hparams['policy_path'])
+                transformations = aug_trans
+                self.pm = PolicyManager(
+                    transformations, raw_policy, len(self.classes), self.device)
+            print("\n### Loss ###")
+            print('Classification Loss')
+            if hparams['mixup']:
+                print('Mixup')
+            if hparams['enforce_prior']:
+                print('Adversarial Loss')
+                self.EPS = 1e-15
+                self.D = Discriminator(self.z_size)
+                self.D = self.D.to(self.device)
+                self.D_optimizer = optim.Adam(self.D.parameters(), lr=0.01, #!follow paper
+                                              weight_decay=hparams['wd'])
+            if hparams['metric_learning']:
+                margin = hparams['metric_margin']
+                metric_loss = hparams["metric_loss"]
+                metric_weight = hparams["metric_weight"]
+                print(
+                    f"Metric Loss (margin: {margin} loss: {metric_loss} weight: {metric_weight})")
+                self.M_optimizer = optim.SGD(
+                    self.net.parameters(), momentum=0.9, lr=1e-3, weight_decay=1e-8)
+                self.metric_weight = hparams['metric_weight']
+                if metric_loss == 'random':
+                    self.metric_loss = OnlineTripletLoss(
+                        margin, RandomNegativeTripletSelector(margin))
+                elif metric_loss == 'hardest':
+                    self.metric_loss = OnlineTripletLoss(
+                        margin, HardestNegativeTripletSelector(margin))
+                elif metric_loss == 'semihard':
+                    self.metric_loss = OnlineTripletLoss(
+                        margin, SemihardNegativeTripletSelector(margin))

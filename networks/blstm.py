@@ -33,7 +33,7 @@ class BiLSTM(nn.Module): #BiLSTM for text
     def extract_features(self, texts, seq_lens):
         embedded = self.dropout(self.embedding(texts))  # sq_len X bs X n_EMB
         packed_embedded = nn.utils.rnn.pack_padded_sequence(
-            embedded, seq_lens)  # seq_len:128 [0]: lenght of each sentence
+            embedded, seq_lens.cpu())  # seq_len:128 [0]: lenght of each sentence
         rnn_out, (hidden, cell) = self.rnn(
             packed_embedded)  # 1 X bs X n_hidden
         features = hidden.permute(1, 0, 2).reshape(len(seq_lens), -1)
@@ -68,7 +68,7 @@ class LSTM(nn.Module): #LSTM for HAR,time series n_hidden default 128
 
     def extract_features(self, texts, seq_lens):
         packed_embedded = nn.utils.rnn.pack_padded_sequence(
-            texts, seq_lens)  # seq_len:128 [0]: lenght of each sentence
+            texts, seq_lens.cpu())  # seq_len:128 [0]: lenght of each sentence
         rnn_out, (hidden, cell) = self.rnn(
             packed_embedded)  # 1 X bs X n_hidden
         features = hidden.permute(1, 0, 2).reshape(len(seq_lens), -1)

@@ -1,10 +1,10 @@
-#!!!Need test metric margin value from {0.5,1,2,4,8} for complete reproduce
 if [[ $1 = "trec" ]]; then
     CUDA_VISIBLE_DEVICES=3 \
     python search.py \
         --model_name blstm \
         --dataset trec \
         --valid_size 0 \
+        --subtrain_ratio 0.1 \
         --epochs 100 \
         --bs 100 \
         --gpu 0.15 --cpu 2 \
@@ -16,14 +16,15 @@ if [[ $1 = "trec" ]]; then
         --metric_weight 0.03 \
         --metric_margin 0.5 \
         --enforce_prior \
-        --prior_weight 1 \
-        --lr 0.01
+        --lr 0.01 \
+        --prior_weight 1
 elif [[ $1 = "sst2" ]]; then
     CUDA_VISIBLE_DEVICES=3 \
     python search.py \
         --model_name blstm \
         --dataset sst2 \
         --valid_size 0 \
+        --subtrain_ratio 0.1 \
         --epochs 100 \
         --bs 100 \
         --gpu 0.15 --cpu 2 \
@@ -35,6 +36,6 @@ elif [[ $1 = "sst2" ]]; then
         --metric_weight 0.03 \
         --metric_margin 2 \
         --enforce_prior \
-        --prior_weight 1 \
-        --lr 0.01
+        --lr 0.01 \
+        --prior_weight 1
 fi
