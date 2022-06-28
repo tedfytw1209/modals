@@ -63,15 +63,15 @@ class LSTM(nn.Module): #LSTM for HAR,time series n_hidden default 128
         self.fc = nn.Linear(config['n_hidden'], config['n_output'])
 
     def _cell(self,  n_embed, n_hidden, n_layers, drop_p, b_dir):
-        cell = nn.LSTM(n_embed, n_hidden, n_layers, bidirectional=b_dir)
+        cell = nn.LSTM(n_embed, n_hidden, n_layers, bidirectional=b_dir,batch_first=True)
         return cell
 
     def extract_features(self, texts, seq_lens):
         packed_embedded = nn.utils.rnn.pack_padded_sequence(
-            texts, seq_lens.cpu())  # seq_len:128 [0]: lenght of each sentence
+            texts, seq_lens.cpu(),batch_first=True)  # seq_len:128 [0]: lenght of each sentence
         rnn_out, (hidden, cell) = self.rnn(
             packed_embedded)  # 1 X bs X n_hidden
-        features = hidden.permute(1, 0, 2).reshape(len(seq_lens), -1)
+        features = hidden.permute(1, 0, 2).reshape(len(seq_lens), -1) #bs X n_hidden
         return features
 
     def classify(self, features):

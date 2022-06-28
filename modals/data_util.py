@@ -106,26 +106,30 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset = PTBXL(dataroot,multilabel=multilabel)
         total = len(dataset)
         random.seed(0) #!!!
-        rd_idxs = random.shuffle([i for i in range(total)])
+        rd_idxs = [i for i in range(total)]
+        random.shuffle(rd_idxs)
         test = Subset(dataset,rd_idxs[:int(total*test_size)])
         if valid_size > 0:
-            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size))])
-            train_idx = rd_idxs[int(total*(test_size+valid_size)):]
+            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
+            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
             train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
             train = Subset(dataset,train_idx)
         classes = [i for i in range(dataset.num_class)]
+        input_channel = dataset.channel
     elif dataset_name == 'wisdm':
         dataset = WISDM(dataroot)
         total = len(dataset)
         random.seed(0) #!!!
-        rd_idxs = random.shuffle([i for i in range(total)])
+        rd_idxs = [i for i in range(total)]
+        random.shuffle(rd_idxs)
         test = Subset(dataset,rd_idxs[:int(total*test_size)])
         if valid_size > 0:
-            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size))])
-            train_idx = rd_idxs[int(total*(test_size+valid_size)):]
+            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
+            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
             train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
             train = Subset(dataset,train_idx)
         classes = [i for i in range(dataset.num_class)]
+        input_channel = dataset.channel
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
 
@@ -140,4 +144,4 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         print(f'  |Valid size:\t{len(valid)}')
     print(f'  |Test size:\t{len(test)}')
 
-    return train_loader, valid_loader, test_loader, classes
+    return train_loader, valid_loader, test_loader, classes, input_channel

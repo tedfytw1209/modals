@@ -110,9 +110,9 @@ class PolicyManager(object):
         self.device = device
         self.multilabel = multilabel
         if self.multilabel:
-            self.criterion = nn.BCEWithLogitsLoss(reduce='mean')
+            self.criterion = nn.BCEWithLogitsLoss(reduce='none')
         else:
-            self.criterion = nn.CrossEntropyLoss()
+            self.criterion = nn.CrossEntropyLoss(reduction='none')
 
     def apply_pba(self, images):
         return
@@ -275,8 +275,8 @@ class PolicyManager(object):
                     label_pool.append(labels[i].cpu())
                     loss_pool.append(loss[i].cpu())
 
-        feat_dim = feat_pool[0].shape[0] #batch size???
-        print('feat_dim: ', feat_dim)
+        feat_dim = feat_pool[0].shape[0] #bs X n_hidden
+        print('feat_dim: ', feat_dim) #n_hidden
         self.feat_pool = torch.stack(
             feat_pool).reshape(-1, feat_dim).double()  # list of all data!!!
         if self.multilabel:

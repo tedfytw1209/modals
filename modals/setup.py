@@ -22,7 +22,7 @@ def create_parser(mode):
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
 
     ## Model and training setting
-    parser.add_argument('--model_name',default='wrn',choices=('elstm', 'tslstm', 'wrn-28x10', 'wrn-40x2', 'resnet', 'blstm', 'mlp', 'densenet'))
+    parser.add_argument('--model_name',default='wrn',choices=('elstm', 'tslstm', 'wrn-28x10', 'wrn-40x2', 'resnet', 'blstm', 'mlp', 'densenet','lstm'))
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs')
     parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
     parser.add_argument('--wd', type=float, default=0.0005,  help='weight decay')

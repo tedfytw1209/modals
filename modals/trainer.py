@@ -35,10 +35,11 @@ def count_parameters(model):
 def build_model(model_name, vocab, n_class, z_size=2):
     net = None
     if model_name == 'blstm':
+        n_hidden = 256
         config = {'n_vocab': len(vocab),
                   'n_embed': 300,
                   'emb': vocab.vectors,
-                  'n_hidden': 256,
+                  'n_hidden': n_hidden,
                   'n_output': n_class,
                   'n_layers': 2,
                   'pad_idx': vocab.stoi['<pad>'],
@@ -46,17 +47,19 @@ def build_model(model_name, vocab, n_class, z_size=2):
                   'rnn_drop': 0.2,
                   'fc_drop': 0.5}
         net = BiLSTM(config)
-        z_size = 256
+        z_size = n_hidden
     if model_name == 'lstm':
+        n_hidden = 128
         config = {
-                  'n_hidden': 128,
+                  'n_embed': vocab,
+                  'n_hidden': n_hidden,
                   'n_output': n_class,
                   'n_layers': 1,
                   'b_dir': False,
                   'rnn_drop': 0.2,
                   'fc_drop': 0.5}
         net = LSTM(config)
-        z_size = 256
+        z_size = n_hidden
     else:
         ValueError(f'Invalid model name={model_name}')
 
@@ -406,10 +409,9 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.hparams = hparams
         print(hparams)
         self.name = name
-        self.vocab = None #no need
         self.multilabel = hparams['multilabel']
         random.seed(0)
-        self.train_loader, self.valid_loader, self.test_loader, self.classes = get_ts_dataloaders(
+        self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'])
         random.seed()
