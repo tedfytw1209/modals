@@ -6,6 +6,7 @@ import numpy as np
 import time
 import pandas as pd
 import numpy as np
+from sklearn.metrics import average_precision_score
 
 def unpickle(file):
     import pickle
@@ -202,3 +203,20 @@ def mixup_data(x, y, alpha=1.0, use_cuda=True):
 
 def mixup_criterion(criterion, pred, y_a, y_b, lam):
     return lam * criterion(pred, y_a) + (1 - lam) * criterion(pred, y_b)
+
+def mAP_cw(targs, preds):
+    """Returns the model's average precision for each class
+    Return:
+        ap (FloatTensor): 1xK tensor, with avg precision for each class k
+    """
+    if np.size(preds) == 0:
+        return 0
+    ap = np.zeros((preds.shape[1]))
+    # compute average precision for each class
+    for k in range(preds.shape[1]):
+        # sort scores
+        scores = preds[:, k]
+        targets = targs[:, k]
+        # compute average precision
+        ap[k] = average_precision_score(scores, targets)
+    return 100 * ap
