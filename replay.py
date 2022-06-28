@@ -6,7 +6,7 @@ import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TextModelTrainer
 from ray.tune.schedulers import PopulationBasedTraining
-
+from ray.tune.schedulers import PopulationBasedTrainingReplay
 
 class RayModel(tune.Trainable):
     def _setup(self, *args):
@@ -33,7 +33,7 @@ class RayModel(tune.Trainable):
         return True
 
 
-def search():
+def replay():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
 
@@ -66,31 +66,17 @@ def search():
 
     ray.init()
 
-    pbt = PopulationBasedTraining(
-        time_attr="training_iteration",
-        metric="valid_acc",
-        mode='max',
-        perturbation_interval=FLAGS.perturbation_interval,
-        custom_explore_fn=explore,
-        log_config=True)
+    replay = PopulationBasedTrainingReplay('/mnt/data2/teddy/modals-main/ray_results/ray_experiment_sst2/pbt_global.txt')
 
     analysis = tune.run(
         RayModel,
         name=hparams['ray_name'],
-        scheduler=pbt,
-        reuse_actors=True,
-        verbose=True,
-        checkpoint_score_attr="valid_acc",
-        checkpoint_freq=FLAGS.checkpoint_freq,
-        resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
-        stop={"training_iteration": hparams['num_epochs']},
-        config=hparams,
-        local_dir=FLAGS.ray_dir,
-        num_samples=FLAGS.num_samples
+        scheduler=replay,
+        stop={"training_iteration": hparams['num_epochs']}
     )
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
     print(analysis.best_trial)
 
 if __name__ == "__main__":
-    search()
+    replay()
