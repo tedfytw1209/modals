@@ -107,7 +107,7 @@ class TextModelTrainer(object):
 
         self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
-            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #!!!follow paper
+            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #follow paper
             self.loss_dict = {'train': [], 'valid': []}
 
             if hparams['use_modals']:
@@ -425,7 +425,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
-            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #!!!follow paper
+            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #follow paper
             self.loss_dict = {'train': [], 'valid': []}
             if hparams['use_modals']:
                 print("\n=> ### Policy ###")

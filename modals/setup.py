@@ -4,8 +4,8 @@ import random
 from modals.augmentation_transforms import NUM_HP_TRANSFORM
 
 RAY_DIR = './ray_results'
-DATA_DIR = '<DATA_PATH>'
-EMB_DIR = '<GLOVE_EMBEDDING_PATH>'
+DATA_DIR = '/mnt/data2/teddy/textdata/'
+EMB_DIR = '/mnt/data2/teddy/emb_dir/'
 CP_DIR = './checkpoints'
 
 
@@ -15,7 +15,9 @@ def create_parser(mode):
 
     ## Datasetting
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
-    parser.add_argument('--dataset', default='trec', choices=('malware', 'har', 'arem', 'hand', 'emnist', 'reduced_emnist', 'cifar10', 'cifar100', 'reduced_cifar10', 'svhn', 'reduced_svhn', 'sst2', 'trec', 'arcene', 'arrhythmia', 'breast','credit', 'iris', 'abalone', 'htru2', 'phishing'))
+    parser.add_argument('--dataset', default='trec', choices=('malware', 'har', 'arem', 'hand', 'emnist',
+     'reduced_emnist', 'cifar10', 'cifar100', 'reduced_cifar10', 'svhn', 'reduced_svhn', 'sst2', 'trec', 'arcene',
+      'arrhythmia', 'breast','credit', 'iris', 'abalone', 'htru2', 'phishing', 'ptbxl', 'wisdm'))
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
 
@@ -26,6 +28,7 @@ def create_parser(mode):
     parser.add_argument('--wd', type=float, default=0.0005,  help='weight decay')
     parser.add_argument('--bs', type=int, default=100, help='batch size')
     parser.add_argument('--gpu_device',  type=str, default='cuda:0')
+    parser.add_argument('--multilabel',  action='store_true', help='otherwise use normal classification')
 
     parser.add_argument('--checkpoint_freq', type=int, default=50, help='Checkpoint frequency.')
     parser.add_argument('--checkpoint_dir', type=str, default=CP_DIR,  help='checkpoint directory.')
@@ -84,6 +87,7 @@ def create_hparams(mode, FLAGS):
         'dataset_dir': FLAGS.data_dir,
         'checkpoint_dir': FLAGS.checkpoint_dir,
         'batch_size': FLAGS.bs,
+        'multilabel': FLAGS.multilabel,
         'gradient_clipping_by_global_norm': 5.0,
         'mixup': FLAGS.mixup,
         'lr': FLAGS.lr,

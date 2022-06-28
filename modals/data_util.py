@@ -6,11 +6,11 @@ from pathlib import Path
 import dill
 import torch
 import torchtext.data as data
-import torchtext.txtdatasets as txtdatasets
+import torchtext.datasets as txtdatasets
 from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
-from datasets import PTBXL,WISDM
+from modals.datasets import PTBXL,WISDM
 
 def save_txt_dataset(dataset, path):
     if not isinstance(path, Path):
@@ -113,7 +113,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             train_idx = rd_idxs[int(total*(test_size+valid_size)):]
             train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
             train = Subset(dataset,train_idx)
-        classes = dataset.num_class
+        classes = [i for i in range(dataset.num_class)]
     elif dataset_name == 'wisdm':
         dataset = WISDM(dataroot)
         total = len(dataset)
@@ -125,13 +125,10 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             train_idx = rd_idxs[int(total*(test_size+valid_size)):]
             train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
             train = Subset(dataset,train_idx)
-        classes = dataset.num_class
+        classes = [i for i in range(dataset.num_class)]
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
 
-    '''train_loader, valid_loader, test_loader = data.BucketIterator.splits(
-        (train, valid, test), batch_size=batch_size, sort=True, sort_key=lambda x: len(x.text),
-        sort_within_batch=True)'''
     train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
     valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
     test_loader = DataLoader(test,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
