@@ -77,6 +77,8 @@ def search():
     analysis = tune.run(
         RayModel,
         name=hparams['ray_name'],
+        metric="valid_acc",
+        mode='max',
         scheduler=pbt,
         reuse_actors=True,
         verbose=True,

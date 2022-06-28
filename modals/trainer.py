@@ -433,7 +433,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                                        hp_policy=hparams['hp_policy'], policy_path=hparams['policy_path'])
                 transformations = aug_trans
                 self.pm = PolicyManager(
-                    transformations, raw_policy, len(self.classes), self.device)
+                    transformations, raw_policy, len(self.classes), self.device, multilabel=hparams['multilabel'])
             print("\n### Loss ###")
             print('Classification Loss')
             if hparams['mixup']:

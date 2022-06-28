@@ -36,7 +36,7 @@ class BiLSTM(nn.Module): #BiLSTM for text
             embedded, seq_lens.cpu())  # seq_len:128 [0]: lenght of each sentence
         rnn_out, (hidden, cell) = self.rnn(
             packed_embedded)  # 1 X bs X n_hidden
-        features = hidden.permute(1, 0, 2).reshape(len(seq_lens), -1)
+        features = hidden.permute(1, 0, 2).reshape(len(seq_lens), -1) #bs X n_hidden
         return features
 
     def classify(self, features):

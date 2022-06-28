@@ -100,7 +100,7 @@ class RawPolicy(object):
 class PolicyManager(object):
     """Manage policy."""
 
-    def __init__(self, aug_trans, raw_policy, num_classes, device):
+    def __init__(self, aug_trans, raw_policy, num_classes, device, multilabel=False):
         self.num_xform = aug_trans.NUM_HP_TRANSFORM
         self.xform_names = aug_trans.HP_TRANSFORM_NAMES
         self.apply_policy_from_pool = aug_trans.apply_policy_from_pool
@@ -108,7 +108,11 @@ class PolicyManager(object):
         self.update_policy(raw_policy)
         self.num_classes = num_classes
         self.device = device
-        self.criterion = nn.CrossEntropyLoss(reduction='none')
+        self.multilabel = multilabel
+        if self.multilabel:
+            self.criterion = nn.BCEWithLogitsLoss(reduce='mean')
+        else:
+            self.criterion = nn.CrossEntropyLoss()
 
     def apply_pba(self, images):
         return
@@ -205,6 +209,95 @@ class PolicyManager(object):
 
         for i in range(self.num_classes):
             img_idxs = torch.where(label_pool == i)[0]
+            self.idx_by_class.append(img_idxs)
+            class_imgs = self.feat_pool[img_idxs]
+            class_loss = loss_pool[img_idxs]
+
+            class_mean = class_imgs.mean(0)
+            self.mean_by_class.append(class_mean)
+            img_distances = np.linalg.norm(
+                class_imgs-class_mean, ord=2, axis=1)  # distance from mean
+
+            class_means.append(class_mean.numpy())
+            # in-class pari-wise distance
+            icpd = euclidean_distances(class_imgs)
+            aicpd = np.sum(icpd)/(len(icpd)*(len(icpd)-1))
+            cluster_closeness.append(aicpd)
+
+            if weight_metric == 'l2':
+                # weight by l2 distance
+                img_weights = img_distances
+                img_weights -= img_weights.max(0)  # numerical stability
+            elif weight_metric == 'cosine':
+                # weight by consine distance
+                img_weights = cosine(class_imgs, class_mean)
+            elif weight_metric == 'loss':
+                # weight by loss
+                img_weights = class_loss
+                img_weights -= torch.max(img_weights)
+            elif weight_metric == 'same':
+                # uniform
+                img_weights = np.ones(len(class_imgs))/len(class_imgs)
+
+            img_weights = np.exp(img_weights/temperature)
+            img_weights = img_weights/img_weights.sum()  # normalize
+
+            self.img_weights_by_class.append(np.nan_to_num(img_weights))
+            self.sd_by_class.append(class_imgs.std(0))
+
+        if verbose:
+            self.print_data_pool_report(cluster_closeness, class_means)
+
+        if return_report:
+            cpd = euclidean_distances(class_means)
+            acpd = np.sum(cpd)/(len(cpd)*(len(cpd)-1))
+            return np.mean(cluster_closeness), acpd
+    
+    def reset_tseries_data_pool(self, encoder, dataloader, temperature, weight_metric, dataset,
+            verbose=False, return_report=False):
+        # compute the sd and mean of each lass
+        # save the features into a pool
+        feat_pool = []
+        label_pool = []
+        loss_pool = []
+        feat_dim = 0
+        encoder.eval()
+        with torch.no_grad():
+            for batch in dataloader:
+                inputs, seq_lens, labels = batch[0].to(
+                    self.device), batch[1].to(self.device), batch[2].to(self.device)
+
+                features = encoder.extract_features(inputs, seq_lens)
+                outputs = encoder.classify(features)
+                loss = self.criterion(outputs, labels.to(self.device))
+                for i in range(len(labels)):
+                    feat_pool.append(features[i].cpu())
+                    label_pool.append(labels[i].cpu())
+                    loss_pool.append(loss[i].cpu())
+
+        feat_dim = feat_pool[0].shape[0] #batch size???
+        print('feat_dim: ', feat_dim)
+        self.feat_pool = torch.stack(
+            feat_pool).reshape(-1, feat_dim).double()  # list of all data!!!
+        if self.multilabel:
+            label_pool = torch.stack(label_pool) # (N, num_label)
+        else:
+            label_pool = torch.stack(label_pool).reshape(-1)
+        loss_pool = torch.stack(loss_pool).reshape(-1)
+
+        self.idx_by_class = []  # [0]: [1,4,2,...] <-index that belongs to class 0
+        self.mean_by_class = []  # [0]: mean of class 0
+        self.sd_by_class = []  # [0]: sd of class 0
+        self.img_weights_by_class = []  # [0]: weights of the images in class 0
+
+        cluster_closeness = []
+        class_means = []
+
+        for i in range(self.num_classes):
+            if self.multilabel:
+                img_idxs = torch.where(label_pool[:,i] == 1)[0]
+            else:
+                img_idxs = torch.where(label_pool == i)[0]
             self.idx_by_class.append(img_idxs)
             class_imgs = self.feat_pool[img_idxs]
             class_loss = loss_pool[img_idxs]
