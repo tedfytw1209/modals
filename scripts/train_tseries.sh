@@ -37,5 +37,6 @@ elif [[ $1 = "wisdm" ]]; then
         --metric_loss random \
         --metric_weight 0.03 \
         --metric_margin 0.5 \
-        --lr 0.01
+        --lr 0.01 \
+        --data_dir /mnt/data2/teddy/modals-main/modals/datasets/wisdm-dataset
 fi
