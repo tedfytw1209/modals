@@ -4,7 +4,6 @@ if [[ $1 = "trec" ]]; then
         --model_name blstm \
         --dataset trec \
         --valid_size 0 \
-        # --subtrain_ratio 0.1 \
         --policy_epochs 100 \
         --epochs 100 \
         --name trec_model \
