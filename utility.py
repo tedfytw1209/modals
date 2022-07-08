@@ -218,5 +218,9 @@ def mAP_cw(targs, preds):
         scores = preds[:, k]
         targets = targs[:, k]
         # compute average precision
-        ap[k] = average_precision_score(scores, targets)
+        #print(scores)
+        #print(targets)
+        each_sum = np.sum(targets)
+        if each_sum>0:
+            ap[k] = average_precision_score(targets,scores)
     return 100 * ap

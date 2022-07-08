@@ -496,7 +496,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         targets = []
         print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
-            inputs, seq_lens, labels = batch[0].to(
+            inputs, seq_lens, labels = batch[0].float().to(
                 self.device), batch[1].to(self.device), batch[2].to(self.device)
             seed_features = self.net.extract_features(inputs, seq_lens)
             features = seed_features
@@ -576,7 +576,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                 else:
                     correct += (predicted == labels).sum().item()
             else:
-                predicted = F.sigmoid(outputs.data)
+                predicted = torch.sigmoid(outputs.data)
             preds.append(predicted.cpu().detach())
             targets.append(labels.cpu().detach())
         
@@ -611,7 +611,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         targets = []
         with torch.no_grad():
             for batch_idx, batch in enumerate(data_loader):
-                inputs, seq_lens, labels = batch[0].to( #need to follow!!!
+                inputs, seq_lens, labels = batch[0].float().to( #need to follow!!!
                     self.device), batch[1].to(self.device), batch[2].to(self.device)
 
                 outputs = self.net(inputs, seq_lens)
@@ -625,9 +625,9 @@ class TSeriesModelTrainer(TextModelTrainer):
                     for t, p in zip(labels.view(-1), predicted.view(-1)):
                         confusion_matrix[t.long(), p.long()] += 1
                 else:
-                    predicted = F.sigmoid(outputs.data)
+                    predicted = torch.sigmoid(outputs.data)
                 preds.append(predicted.cpu().detach())
-                targets.append(labels.cpu().detach())
+                targets.append(labels.cpu().detach().long())
                 
                 torch.cuda.empty_cache()
         

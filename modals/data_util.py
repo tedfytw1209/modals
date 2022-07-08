@@ -101,7 +101,6 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', multilabel=False):
-
     if dataset_name == 'ptbxl':
         dataset = PTBXL(dataroot,multilabel=multilabel)
         total = len(dataset)
@@ -160,6 +159,13 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         input_channel = dataset.channel
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
+    print('Print sample 0')
+    samples = train[0] # data,len,label
+    print(samples[0])
+    print(samples[0].shape)
+    print(samples[1])
+    print(samples[2])
+    print(samples[2].shape)
 
     train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
     valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
