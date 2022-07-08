@@ -10,7 +10,7 @@ import torchtext.datasets as txtdatasets
 from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
-from modals.datasets import PTBXL,WISDM
+from modals.datasets import PTBXL,WISDM,Chapman,EDFX
 
 def save_txt_dataset(dataset, path):
     if not isinstance(path, Path):
@@ -118,6 +118,34 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         input_channel = dataset.channel
     elif dataset_name == 'wisdm':
         dataset = WISDM(dataroot)
+        total = len(dataset)
+        random.seed(0) #!!!
+        rd_idxs = [i for i in range(total)]
+        random.shuffle(rd_idxs)
+        test = Subset(dataset,rd_idxs[:int(total*test_size)])
+        if valid_size > 0:
+            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
+            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
+            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
+            train = Subset(dataset,train_idx)
+        classes = [i for i in range(dataset.num_class)]
+        input_channel = dataset.channel
+    elif dataset_name == 'edfx':
+        dataset = EDFX(dataroot) #diff with CADDA paper data split
+        total = len(dataset)
+        random.seed(0) #!!!
+        rd_idxs = [i for i in range(total)]
+        random.shuffle(rd_idxs)
+        test = Subset(dataset,rd_idxs[:int(total*test_size)])
+        if valid_size > 0:
+            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
+            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
+            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
+            train = Subset(dataset,train_idx)
+        classes = [i for i in range(dataset.num_class)]
+        input_channel = dataset.channel
+    elif dataset_name == 'chapman':
+        dataset = Chapman(dataroot) #chapman need normalize
         total = len(dataset)
         random.seed(0) #!!!
         rd_idxs = [i for i in range(total)]

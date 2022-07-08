@@ -17,7 +17,7 @@ def create_parser(mode):
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
     parser.add_argument('--dataset', default='trec', choices=('malware', 'har', 'arem', 'hand', 'emnist',
      'reduced_emnist', 'cifar10', 'cifar100', 'reduced_cifar10', 'svhn', 'reduced_svhn', 'sst2', 'trec', 'arcene',
-      'arrhythmia', 'breast','credit', 'iris', 'abalone', 'htru2', 'phishing', 'ptbxl', 'wisdm'))
+      'arrhythmia', 'breast','credit', 'iris', 'abalone', 'htru2', 'phishing', 'ptbxl', 'wisdm','edfx','chapman'))
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
 
@@ -101,6 +101,7 @@ def create_hparams(mode, FLAGS):
         'metric_learning': FLAGS.metric_learning,
         'subtrain_ratio': FLAGS.subtrain_ratio, ## for text data controlling ratio of training data
         'manifold_mixup': FLAGS.manifold_mixup,
+        'multilabel': FLAGS.multilabel
         }
 
     if FLAGS.enforce_prior:

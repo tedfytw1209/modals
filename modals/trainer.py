@@ -6,6 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from networks.blstm import BiLSTM,LSTM
+from networks.Sleep_stager import SleepStagerChambon2018
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
@@ -48,7 +49,19 @@ def build_model(model_name, vocab, n_class, z_size=2):
                   'fc_drop': 0.5}
         net = BiLSTM(config)
         z_size = n_hidden
-    if model_name == 'lstm':
+    elif model_name == 'lstm':
+        n_hidden = 128
+        config = {
+                  'n_embed': vocab,
+                  'n_hidden': n_hidden,
+                  'n_output': n_class,
+                  'n_layers': 1,
+                  'b_dir': False,
+                  'rnn_drop': 0.2,
+                  'fc_drop': 0.5}
+        net = LSTM(config)
+        z_size = n_hidden
+    elif model_name == 'sleepstager':
         n_hidden = 128
         config = {
                   'n_embed': vocab,
@@ -413,7 +426,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
-            subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'])
+            subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel)
         random.seed()
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
