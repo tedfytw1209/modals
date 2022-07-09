@@ -6,7 +6,7 @@ import numpy as np
 import time
 import pandas as pd
 import numpy as np
-from sklearn.metrics import average_precision_score
+from sklearn.metrics import average_precision_score,roc_auc_score
 
 def unpickle(file):
     import pickle
@@ -223,4 +223,25 @@ def mAP_cw(targs, preds):
         each_sum = np.sum(targets)
         if each_sum>0:
             ap[k] = average_precision_score(targets,scores)
+    return 100 * ap
+
+def AUROC_cw(targs, preds):
+    """Returns the model's average precision for each class
+    Return:
+        ap (FloatTensor): 1xK tensor, with avg precision for each class k
+    """
+    if np.size(preds) == 0:
+        return 0
+    ap = np.zeros((preds.shape[1]))
+    # compute average precision for each class
+    for k in range(preds.shape[1]):
+        # sort scores
+        scores = preds[:, k]
+        targets = targs[:, k]
+        # compute average precision
+        #print(scores)
+        #print(targets)
+        each_sum = np.sum(targets)
+        if each_sum>0:
+            ap[k] = roc_auc_score(targets,scores)
     return 100 * ap

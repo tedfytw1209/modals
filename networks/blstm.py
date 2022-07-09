@@ -55,10 +55,15 @@ class LSTM(nn.Module): #LSTM for HAR,time series n_hidden default 128
         self.n_layers = config['n_layers']   # number of layers
         # number of hidden nodes
         self.rnn_hidden = config['n_hidden']//(
-            2*config['n_layers']) if config['b_dir'] else config['n_hidden']
+            2*config['n_layers'] if config['b_dir'] else config['n_hidden'])
 
         self.rnn = self._cell(config['n_embed'], self.rnn_hidden,
                               config['n_layers'], config['rnn_drop'], config['b_dir'])
+        
+        if config.get('batch_norm',False):
+            self.batch_norm = nn.BatchNorm1d(config['n_hidden'])
+        else:
+            self.batch_norm = nn.Identity()
         self.dropout = nn.Dropout(config['fc_drop'])
         self.fc = nn.Linear(config['n_hidden'], config['n_output'])
 
@@ -75,6 +80,9 @@ class LSTM(nn.Module): #LSTM for HAR,time series n_hidden default 128
         return features
 
     def classify(self, features):
+        print(features.shape)
+        features = self.batch_norm(features)
+        features = self.dropout(features)
         fc_out = self.fc(features)  # 1 x bs x d_out
 #         softmax_out = F.softmax(fc_out, dim=-1)
         return fc_out

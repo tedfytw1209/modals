@@ -15,14 +15,12 @@ def create_parser(mode):
 
     ## Datasetting
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
-    parser.add_argument('--dataset', default='trec', choices=('malware', 'har', 'arem', 'hand', 'emnist',
-     'reduced_emnist', 'cifar10', 'cifar100', 'reduced_cifar10', 'svhn', 'reduced_svhn', 'sst2', 'trec', 'arcene',
-      'arrhythmia', 'breast','credit', 'iris', 'abalone', 'htru2', 'phishing', 'ptbxl', 'wisdm','edfx','chapman'))
+    parser.add_argument('--dataset', default='trec')
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
 
     ## Model and training setting
-    parser.add_argument('--model_name',default='wrn',choices=('elstm', 'tslstm', 'wrn-28x10', 'wrn-40x2', 'resnet', 'blstm', 'mlp', 'densenet','lstm'))
+    parser.add_argument('--model_name',default='wrn')
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs')
     parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
     parser.add_argument('--wd', type=float, default=0.0005,  help='weight decay')
