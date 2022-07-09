@@ -10,6 +10,7 @@ from networks.Sleep_stager import SleepStagerChambon2018
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
+import numpy as np
 from sklearn.metrics import average_precision_score,roc_auc_score
 from utility import mixup_criterion, mixup_data, mAP_cw, AUROC_cw
 
@@ -583,7 +584,15 @@ class TSeriesModelTrainer(TextModelTrainer):
         if not self.multilabel:
             perfrom = correct/total
         else:
-            perfrom = roc_auc_score(torch.cat(targets).numpy(), torch.cat(preds).numpy(),average='macro')
+            targets_np = torch.cat(targets).numpy()
+            preds_np = torch.cat(preds).numpy()
+            try:
+                perfrom = 100 * roc_auc_score(targets_np, preds_np,average='macro')
+            except Exception as e:
+                nan_count = np.sum(np.isnan(preds_np))
+                inf_count = np.sum(np.isinf(preds_np))
+                print('predict nan, inf count: ',nan_count,inf_count)
+                raise e
         epoch_loss = train_losses/n_batch
         # step
         step = (cur_epoch-1)*(len(self.train_loader)) + batch_idx
@@ -635,16 +644,18 @@ class TSeriesModelTrainer(TextModelTrainer):
             perfrom = correct/total
             perfrom_cw = confusion_matrix.diag()/confusion_matrix.sum(1)
         else:
-            perfrom_cw = AUROC_cw(torch.cat(targets).numpy(), torch.cat(preds).numpy())
+            targets_np = torch.cat(targets).numpy()
+            preds_np = torch.cat(preds).numpy()
+            perfrom_cw = AUROC_cw(targets_np,preds_np)
             perfrom = perfrom_cw.mean()
         epoch_loss = test_loss / len(data_loader)
 
         if not self.multilabel:
             print(f'| ({mode}) Epoch #{cur_epoch}\t Loss: {epoch_loss:.4f}\t Acc@1: {perfrom:.4f}')
-            print(f'class-wise Acc: ',['%.4f'%e for e in perfrom_cw])
+            print(f'class-wise Acc: ','['+', '.join(['%.1f'%e for e in perfrom_cw])+']')
         else:
             print(f'| ({mode}) Epoch #{cur_epoch}\t Loss: {epoch_loss:.4f}\t MacroAUROC: {perfrom:.4f}')
-            print(f'class-wise AUROC: ',['%.4f'%e for e in perfrom_cw])
+            print(f'class-wise AUROC: ','['+', '.join(['%.1f'%e for e in perfrom_cw])+']')
 
         return perfrom, epoch_loss
 
