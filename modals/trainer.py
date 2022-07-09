@@ -6,6 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from networks.blstm import BiLSTM,LSTM
+from networks.LSTM import LSTM_ecg
+from networks.LSTM_attention import LSTM_attention
 from networks.Sleep_stager import SleepStagerChambon2018
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
@@ -34,7 +36,7 @@ def count_parameters(model):
     print(f' |Trainable parameters: {temp}')
 
 
-def build_model(model_name, vocab, n_class, z_size=2):
+def build_model(model_name, vocab, n_class, z_size=2, seq_len=0):
     net = None
     if model_name == 'blstm':
         n_hidden = 256
@@ -72,13 +74,37 @@ def build_model(model_name, vocab, n_class, z_size=2):
                   'b_dir': False,
                   'rnn_drop': 0.2,
                   'fc_drop': 0.5}
-        net = LSTM(config)
+        net = LSTM_ecg(config)
         z_size = n_hidden
+    elif model_name == 'lstm_atten':
+        n_hidden = 512
+        config = {
+                  'n_embed': vocab,
+                  'n_hidden': n_hidden,
+                  'n_output': n_class,
+                  'n_layers': 1,
+                  'b_dir': True,
+                  'rnn_drop': 0.2,
+                  'fc_drop': 0.5}
+        net = LSTM_attention(config)
+        z_size = n_hidden
+    elif model_name == 'cnn_sleep':
+        #n_hidden = 512
+        config = {
+                  'n_channels': vocab,
+                  'sfreq': 100,
+                  'batch_norm': True,
+                  'n_output': n_class,
+                  'dropout': 0.25,
+                  }
+        net = SleepStagerChambon2018(config)
+        z_size = net.len_last_layer
     else:
         ValueError(f'Invalid model name={model_name}')
 
     print('\n### Model ###')
     print(f'=> {model_name}')
+    print(f'embedding=> {z_size}')
     count_parameters(net)
 
     return net, z_size, model_name

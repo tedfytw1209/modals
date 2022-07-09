@@ -49,7 +49,7 @@ class SleepStagerChambon2018(nn.Module):
         n_classes = config.get('n_output')
         input_size_s=config.get('input_size_s',30)
         dropout=config.get('dropout',0.25)
-        apply_batch_norm=config.get('apply_batch_norm',False)
+        apply_batch_norm=config.get('batch_norm',False)
         time_conv_size = int(time_conv_size_s * sfreq)
         max_pool_size = int(max_pool_size_s * sfreq)
         input_size = int(input_size_s * sfreq)
@@ -57,6 +57,7 @@ class SleepStagerChambon2018(nn.Module):
         self.n_channels = n_channels
         len_last_layer = self._len_last_layer(
             n_channels, input_size, max_pool_size, n_conv_chs)
+        self.len_last_layer = len_last_layer
 
         if n_channels > 1:
             self.spatial_conv = nn.Conv2d(1, n_channels, (n_channels, 1))
@@ -88,8 +89,8 @@ class SleepStagerChambon2018(nn.Module):
     def extract_features(self, x):
         x = x.unsqueeze(1) # (batch_size, 1, n_channels, n_times)
         if self.n_channels > 1:
-            x = self.spatial_conv(x)
-            x = x.transpose(1, 2)
+            x = self.spatial_conv(x) # (batch_size, n_channels, 1, n_times)
+            x = x.transpose(1, 2) # (batch_size, 1, n_channels, n_times)
         x = self.feature_extractor(x)
         x = x.flatten(start_dim=1)
         return x
