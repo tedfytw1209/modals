@@ -6,7 +6,7 @@ import torch.nn.utils.rnn as rnn_utils
 
 class LSTM_attention(nn.Module):
 
-    def __init__(self,config, embedding_dim, hidden_dim, num_classes, dropout=0.5):
+    def __init__(self,config):
         super(LSTM_attention, self).__init__()
         self.n_layers = config['n_layers']   # number of layers
         self.config = config
@@ -14,6 +14,7 @@ class LSTM_attention(nn.Module):
         self.embedding_dim = config['n_embed']
         self.num_class = config['n_output']
         self.bidirect = config['b_dir']
+        self.dropout = config['fc_drop']
 
         # The LSTM takes word embeddings as inputs, and outputs hidden states
         # with dimensionality hidden_dim
@@ -25,8 +26,8 @@ class LSTM_attention(nn.Module):
         )
 
         # Single head output for num classes
-        self.fc_out = nn.Sequential(
-                nn.Dropout(dropout),
+        self.fc = nn.Sequential(
+                nn.Dropout(self.dropout),
                 nn.Linear(self.hidden_dim, self.num_class)
             )
 
@@ -58,7 +59,7 @@ class LSTM_attention(nn.Module):
         return h_new, alpha
     
     def extract_features(self, sequence, sequence_len):
-        sequence_pack = rnn_utils.pack_padded_sequence(sequence, sequence_len, batch_first=True)
+        sequence_pack = rnn_utils.pack_padded_sequence(sequence, sequence_len.cpu(), batch_first=True)
         lstm_out, (h, c) = self.lstm(sequence_pack)
         out_pad, _out_len = rnn_utils.pad_packed_sequence(lstm_out, batch_first=True)
         atten_out, alpha = self.attention_net_with_w(out_pad)

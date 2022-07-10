@@ -36,7 +36,7 @@ def count_parameters(model):
     print(f' |Trainable parameters: {temp}')
 
 
-def build_model(model_name, vocab, n_class, z_size=2, seq_len=0):
+def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
     net = None
     if model_name == 'blstm':
         n_hidden = 256
@@ -88,14 +88,14 @@ def build_model(model_name, vocab, n_class, z_size=2, seq_len=0):
                   'fc_drop': 0.5}
         net = LSTM_attention(config)
         z_size = n_hidden
-    elif model_name == 'cnn_sleep':
+    elif model_name == 'cnn_sleep': #with problems!!!
         #n_hidden = 512
         config = {
                   'n_channels': vocab,
-                  'sfreq': 100,
+                  'dataset': dataset,
                   'batch_norm': True,
                   'n_output': n_class,
-                  'dropout': 0.25,
+                  'fc_drop': 0.25,
                   }
         net = SleepStagerChambon2018(config)
         z_size = net.len_last_layer
@@ -145,7 +145,7 @@ class TextModelTrainer(object):
         print('### Device ###')
         print(self.device)
         self.net, self.z_size, self.file_name = build_model(
-            hparams['model_name'], self.vocab, len(self.classes))
+            hparams['model_name'], self.vocab, len(self.classes),dataset=hparams['dataset_name'])
         self.net = self.net.to(self.device)
 
         self.criterion = nn.CrossEntropyLoss()
@@ -524,7 +524,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
             inputs, seq_lens, labels = batch[0].float().to(
-                self.device), batch[1].to(self.device), batch[2].to(self.device)
+                self.device), batch[1].cpu(), batch[2].to(self.device)
             seed_features = self.net.extract_features(inputs, seq_lens)
             features = seed_features
             if self.hparams['manifold_mixup']:
@@ -593,7 +593,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                 self.D_optimizer.step()
                 d_losses += d_loss.item()
 
-            # Accuracy / mAP
+            # Accuracy / AUROC
             if not self.multilabel:
                 _, predicted = torch.max(outputs.data, 1)
                 total += labels.size(0)
@@ -667,8 +667,8 @@ class TSeriesModelTrainer(TextModelTrainer):
                 torch.cuda.empty_cache()
         
         if not self.multilabel:
-            perfrom = correct/total
-            perfrom_cw = confusion_matrix.diag()/confusion_matrix.sum(1)
+            perfrom = 100 * correct/total
+            perfrom_cw = 100 * confusion_matrix.diag()/confusion_matrix.sum(1)
         else:
             targets_np = torch.cat(targets).numpy()
             preds_np = torch.cat(preds).numpy()

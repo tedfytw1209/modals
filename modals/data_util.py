@@ -165,7 +165,6 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     print(samples[0].shape)
     print(samples[1])
     print(samples[2])
-    print(samples[2].shape)
 
     train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
     valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
