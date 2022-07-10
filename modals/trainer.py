@@ -552,6 +552,8 @@ class TSeriesModelTrainer(TextModelTrainer):
                     self.criterion, outputs, targets_a, targets_b, lam)
             else:
                 c_loss = self.criterion(outputs, labels)  # Loss
+            print(outputs)
+            print(labels)
             clf_losses += c_loss.item()
             # total loss
             loss = c_loss
@@ -608,7 +610,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             targets.append(labels.cpu().detach())
         
         if not self.multilabel:
-            perfrom = correct/total
+            perfrom = 100 * correct/total
         else:
             targets_np = torch.cat(targets).numpy()
             preds_np = torch.cat(preds).numpy()
