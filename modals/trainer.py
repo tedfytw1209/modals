@@ -506,7 +506,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                     self.metric_loss = OnlineTripletLoss(
                         margin, SemihardNegativeTripletSelector(margin))
     
-    def _train(self, cur_epoch):
+    def _train(self, cur_epoch, trail_id):
         self.net.train()
         self.net.training = True
         self.scheduler = lr_scheduler.CosineAnnealingLR(
@@ -519,6 +519,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         correct = 0
         total = 0
         n_batch = len(self.train_loader)
+        confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
         preds = []
         targets = []
         print(f'\n=> Training Epoch #{cur_epoch}')
@@ -604,6 +605,8 @@ class TSeriesModelTrainer(TextModelTrainer):
                             + (1 - lam) * predicted.eq(targets_b.data).cpu().sum().float())
                 else:
                     correct += (predicted == labels).sum().item()
+                for t, p in zip(labels.view(-1), predicted.view(-1)):
+                        confusion_matrix[t.long(), p.long()] += 1
             else:
                 predicted = torch.sigmoid(outputs.data)
             preds.append(predicted.cpu().detach())
@@ -611,6 +614,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         
         if not self.multilabel:
             perfrom = 100 * correct/total
+            perfrom_cw = 100 * confusion_matrix.diag()/confusion_matrix.sum(1)
         else:
             targets_np = torch.cat(targets).numpy()
             preds_np = torch.cat(preds).numpy()
@@ -621,22 +625,37 @@ class TSeriesModelTrainer(TextModelTrainer):
                 inf_count = np.sum(np.isinf(preds_np))
                 print('predict nan, inf count: ',nan_count,inf_count)
                 raise e
+            perfrom_cw = AUROC_cw(targets_np,preds_np)
+            perfrom = perfrom_cw.mean()
         epoch_loss = train_losses/n_batch
         # step
         step = (cur_epoch-1)*(len(self.train_loader)) + batch_idx
         total_steps = self.hparams['num_epochs']*len(self.train_loader)
-
+        #wandb dic
+        out_dic = {}
+        out_dic[f't{trail_id}_train_loss'] = epoch_loss
+        out_dic[f't{trail_id}_train_clfloss'] = clf_losses/n_batch
         # logs
         display = f'| Epoch [{cur_epoch}/{self.hparams["num_epochs"]}]\tIter[{step}/{total_steps}]\tLoss: {epoch_loss:.4f}\tAcc@1/MacromAP: {perfrom:.4f}\tclf_loss: {clf_losses/n_batch:.4f}'
         if self.hparams['enforce_prior']:
             display += f'\td_loss: {d_losses/n_batch:.4f}\tg_loss: {g_losses/n_batch:.4f}'
+            out_dic[f't{trail_id}_train_d_loss'] = d_losses/n_batch
+            out_dic[f't{trail_id}_train_g_loss'] = g_losses/n_batch
         if self.hparams['metric_learning']:
             display += f'\tmetric_loss: {metric_losses/n_batch:.4f}'
+            out_dic[f't{trail_id}_train_metric_loss'] = metric_losses/n_batch
         print(display)
+        if self.multilabel:
+            ptype = 'auroc'
+        else:
+            ptype = 'acc'
+        out_dic[f't{trail_id}_train_{ptype}'] = perfrom
+        for i,e_c in enumerate(perfrom_cw):
+            out_dic[f't{trail_id}_train_{ptype}_c{i}'] = e_c
 
-        return perfrom, epoch_loss
+        return perfrom, epoch_loss, out_dic
 
-    def _test(self, cur_epoch, mode):
+    def _test(self, cur_epoch, trail_id, mode):
         self.net.eval()
         self.net.training = False
         correct = 0
@@ -684,21 +703,32 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             print(f'| ({mode}) Epoch #{cur_epoch}\t Loss: {epoch_loss:.4f}\t MacroAUROC: {perfrom:.4f}')
             print(f'class-wise AUROC: ','['+', '.join(['%.1f'%e for e in perfrom_cw])+']')
+        #wandb dic
+        out_dic = {}
+        out_dic[f't{trail_id}_{mode}_loss'] = epoch_loss
+        if self.multilabel:
+            ptype = 'auroc'
+        else:
+            ptype = 'acc'
+        out_dic[f't{trail_id}_{mode}_{ptype}'] = perfrom
+        for i,e_c in enumerate(perfrom_cw):
+            out_dic[f't{trail_id}_{mode}_{ptype}_c{i}'] = e_c
 
-        return perfrom, epoch_loss
+        return perfrom, epoch_loss, out_dic
 
-    def run_model(self, epoch):
+    def run_model(self, epoch, trail_id):
         if self.hparams['use_modals']:
             self.pm.reset_tseries_data_pool(
                 self.net, self.train_loader, self.hparams['temperature'], self.hparams['distance_metric'], self.hparams['dataset_name'])
 
-        train_acc, tl = self._train(epoch)
+        train_acc, tl, train_dic = self._train(epoch, trail_id)
         self.loss_dict['train'].append(tl)
 
         if self.hparams['valid_size'] > 0:
-            val_acc, vl = self._test(epoch, mode='valid')
+            val_acc, vl,val_dic = self._test(epoch, trail_id, mode='valid')
             self.loss_dict['valid'].append(vl)
+            train_dic.update(val_dic)
         else:
             val_acc = 0.0
 
-        return train_acc, val_acc
+        return train_acc, val_acc, train_dic

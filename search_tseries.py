@@ -1,5 +1,5 @@
 import random
-
+import wandb
 import numpy as np
 import ray
 import ray.tune as tune
@@ -13,9 +13,13 @@ class RayModel(tune.Trainable):
         self.trainer = TSeriesModelTrainer(self.config)
 
     def _train(self):
-        print(f'Starting Ray Iteration: {self._iteration}')
-        train_acc, valid_acc = self.trainer.run_model(self._iteration)
-        test_acc, test_loss = self.trainer._test(self._iteration, mode='test')
+        print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
+        step_dic = {'epoch':self._iteration}
+        train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
+        test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
+        step_dic.update(info_dict)
+        step_dic.update(info_dict_test)
+        wandb.log(step_dic)
         return {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
 
     def _save(self, checkpoint_dir):
@@ -36,6 +40,14 @@ class RayModel(tune.Trainable):
 def search():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
+    #wandb
+    experiment_name = f'MODAL_search_{FLAGS.dataset}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
+    run_log = wandb.init(config=FLAGS, 
+                  project='Myresearch',
+                  name=experiment_name,
+                  dir='./',
+                  job_type="DataAugment",
+                  reinit=True)
 
     # if FLAGS.restore:
     #     train_spec["restore"] = FLAGS.restore
