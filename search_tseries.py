@@ -6,28 +6,25 @@ import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
 from ray.tune.schedulers import PopulationBasedTraining
-from ray.tune import Callback
+from ray.tune.integration.wandb import WandbTrainableMixin
 
-class MyCallback(Callback):
-    def on_train_end(self, iteration, trials, trial, valid_acc,step_dic, **info):
-        print(f"Trail: {trial} Epoch: {iteration} Valid acc: {valid_acc}")
-        wandb.log(step_dic)
 
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
-class RayModel(tune.Trainable):
+class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
 
-    def _train(self):
+    def step(self):#use step replace _train
         print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
-        step_dic = {'epoch':self._iteration}
+        step_dic = {f'epoch':self._iteration}
         train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
         test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
         step_dic.update(info_dict)
         step_dic.update(info_dict_test)
-        #wandb.log(step_dic)
-        call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc, 'step_dic': step_dic}
+        wandb.log(step_dic)
+        call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
+        #call_back_dic.update(step_dic)
         return call_back_dic
 
     def _save(self, checkpoint_dir):
@@ -50,12 +47,23 @@ def search():
     hparams = create_hparams('search', FLAGS)
     #wandb
     experiment_name = f'MODAL_search_{FLAGS.dataset}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
-    run_log = wandb.init(config=FLAGS, 
-                  project='Myresearch',
+    '''run_log = wandb.init(config=FLAGS, 
+                  project='MODAL',
                   name=experiment_name,
                   dir='./',
                   job_type="DataAugment",
-                  reinit=True)
+                  reinit=True)'''
+    wandb_config = {
+        'config':FLAGS, 
+        'project':'MODAL',
+        'group':experiment_name,
+        #'name':experiment_name,
+        'dir':'./',
+        'job_type':"DataAugment",
+        'reinit':True,
+        'api_key':API_KEY,
+    }
+    hparams['wandb'] = wandb_config
 
     # if FLAGS.restore:
     #     train_spec["restore"] = FLAGS.restore
@@ -99,17 +107,18 @@ def search():
         metric="valid_acc",
         mode='max',
         checkpoint_score_attr="valid_acc",
-        checkpoint_freq=FLAGS.checkpoint_freq,
+        #checkpoint_freq=FLAGS.checkpoint_freq,
         resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
         stop={"training_iteration": hparams['num_epochs']},
         config=hparams,
         local_dir=FLAGS.ray_dir,
         num_samples=FLAGS.num_samples,
-        callbacks=[MyCallback()],
     )
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
     print(analysis.best_trial)
+
+    wandb.finish()
 
 if __name__ == "__main__":
     search()

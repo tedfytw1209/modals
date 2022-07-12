@@ -632,25 +632,25 @@ class TSeriesModelTrainer(TextModelTrainer):
         total_steps = self.hparams['num_epochs']*len(self.train_loader)
         #wandb dic
         out_dic = {}
-        out_dic[f't{trail_id}_train_loss'] = epoch_loss
-        out_dic[f't{trail_id}_train_clfloss'] = clf_losses/n_batch
+        out_dic[f'train_loss'] = epoch_loss
+        out_dic[f'train_clfloss'] = clf_losses/n_batch
         # logs
         display = f'| Epoch [{cur_epoch}/{self.hparams["num_epochs"]}]\tIter[{step}/{total_steps}]\tLoss: {epoch_loss:.4f}\tAcc@1/MacromAP: {perfrom:.4f}\tclf_loss: {clf_losses/n_batch:.4f}'
         if self.hparams['enforce_prior']:
             display += f'\td_loss: {d_losses/n_batch:.4f}\tg_loss: {g_losses/n_batch:.4f}'
-            out_dic[f't{trail_id}_train_d_loss'] = d_losses/n_batch
-            out_dic[f't{trail_id}_train_g_loss'] = g_losses/n_batch
+            out_dic[f'train_d_loss'] = d_losses/n_batch
+            out_dic[f'train_g_loss'] = g_losses/n_batch
         if self.hparams['metric_learning']:
             display += f'\tmetric_loss: {metric_losses/n_batch:.4f}'
-            out_dic[f't{trail_id}_train_metric_loss'] = metric_losses/n_batch
+            out_dic[f'train_metric_loss'] = metric_losses/n_batch
         print(display)
         if self.multilabel:
             ptype = 'auroc'
         else:
             ptype = 'acc'
-        out_dic[f't{trail_id}_train_{ptype}'] = perfrom
+        out_dic[f'train_{ptype}'] = perfrom
         for i,e_c in enumerate(perfrom_cw):
-            out_dic[f't{trail_id}_train_{ptype}_c{i}'] = e_c
+            out_dic[f'train_{ptype}_c{i}'] = e_c
 
         return perfrom, epoch_loss, out_dic
 
@@ -704,14 +704,14 @@ class TSeriesModelTrainer(TextModelTrainer):
             print(f'class-wise AUROC: ','['+', '.join(['%.1f'%e for e in perfrom_cw])+']')
         #wandb dic
         out_dic = {}
-        out_dic[f't{trail_id}_{mode}_loss'] = epoch_loss
+        out_dic[f'{mode}_loss'] = epoch_loss
         if self.multilabel:
             ptype = 'auroc'
         else:
             ptype = 'acc'
-        out_dic[f't{trail_id}_{mode}_{ptype}'] = perfrom
+        out_dic[f'{mode}_{ptype}'] = perfrom
         for i,e_c in enumerate(perfrom_cw):
-            out_dic[f't{trail_id}_{mode}_{ptype}_c{i}'] = e_c
+            out_dic[f'{mode}_{ptype}_c{i}'] = e_c
 
         return perfrom, epoch_loss, out_dic
 

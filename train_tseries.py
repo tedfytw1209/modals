@@ -17,7 +17,8 @@ def main(FLAGS, hparams):
         Aug_type = 'NOAUG'
     experiment_name = f'{Aug_type}_train_{FLAGS.dataset}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}'
     run_log = wandb.init(config=FLAGS, 
-                  project='Myresearch',
+                  project='MODAL',
+                  group=experiment_name,
                   name=experiment_name,
                   dir='./',
                   job_type="DataAugment",
