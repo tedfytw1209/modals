@@ -553,8 +553,6 @@ class TSeriesModelTrainer(TextModelTrainer):
                     self.criterion, outputs, targets_a, targets_b, lam)
             else:
                 c_loss = self.criterion(outputs, labels)  # Loss
-            print(outputs)
-            print(labels)
             clf_losses += c_loss.item()
             # total loss
             loss = c_loss
