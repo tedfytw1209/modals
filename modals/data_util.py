@@ -100,65 +100,45 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
-def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', multilabel=False):
+def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', multilabel=False, default_split=False):
     if dataset_name == 'ptbxl':
-        dataset = PTBXL(dataroot,multilabel=multilabel)
-        total = len(dataset)
-        random.seed(0) #!!!
-        rd_idxs = [i for i in range(total)]
-        random.shuffle(rd_idxs)
-        test = Subset(dataset,rd_idxs[:int(total*test_size)])
-        if valid_size > 0:
-            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
-            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
-            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
-            train = Subset(dataset,train_idx)
-        classes = [i for i in range(dataset.num_class)]
-        input_channel = dataset.channel
+        dataset_func = PTBXL
     elif dataset_name == 'wisdm':
-        dataset = WISDM(dataroot)
-        total = len(dataset)
-        random.seed(0) #!!!
-        rd_idxs = [i for i in range(total)]
-        random.shuffle(rd_idxs)
-        test = Subset(dataset,rd_idxs[:int(total*test_size)])
-        if valid_size > 0:
-            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
-            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
-            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
-            train = Subset(dataset,train_idx)
-        classes = [i for i in range(dataset.num_class)]
-        input_channel = dataset.channel
+        dataset_func = WISDM
     elif dataset_name == 'edfx':
-        dataset = EDFX(dataroot) #diff with CADDA paper data split
-        total = len(dataset)
-        random.seed(0) #!!!
-        rd_idxs = [i for i in range(total)]
-        random.shuffle(rd_idxs)
-        test = Subset(dataset,rd_idxs[:int(total*test_size)])
-        if valid_size > 0:
-            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
-            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
-            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
-            train = Subset(dataset,train_idx)
-        classes = [i for i in range(dataset.num_class)]
-        input_channel = dataset.channel
+        dataset_func = EDFX
     elif dataset_name == 'chapman':
-        dataset = Chapman(dataroot) #chapman need normalize
-        total = len(dataset)
-        random.seed(0) #!!!
-        rd_idxs = [i for i in range(total)]
-        random.shuffle(rd_idxs)
-        test = Subset(dataset,rd_idxs[:int(total*test_size)])
-        if valid_size > 0:
-            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
-            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
-            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
-            train = Subset(dataset,train_idx)
-        classes = [i for i in range(dataset.num_class)]
-        input_channel = dataset.channel
+        dataset_func = Chapman
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
+    if not default_split or dataset_name=='chapman': #chapman didn't have default split now!!!
+        dataset = dataset_func(dataroot,multilabel=multilabel)
+        total = len(dataset)
+        random.seed(0) #!!!
+        rd_idxs = [i for i in range(total)]
+        random.shuffle(rd_idxs)
+        test = Subset(dataset,rd_idxs[:int(total*test_size)])
+        if valid_size > 0:
+            valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
+            train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
+            train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
+            train = Subset(dataset,train_idx)
+    else:
+        if dataset_name == 'edfx': #edfx have special split method
+            dataset = dataset_func(dataroot,multilabel=multilabel)
+            splits_proportions = dataset.CV_split_indices() #(k, ratio, sub_tr_idx, valid_idx, test_idx) * 5
+            split_info = splits_proportions[0]
+            sub_tr_idx, valid_idx, test_idx = split_info[2],split_info[3],split_info[4]
+            test = Subset(dataset,test_idx)
+            valid = Subset(dataset,valid_idx)
+            train = Subset(dataset,sub_tr_idx)
+        else:
+            train = dataset_func(dataroot,mode='train',multilabel=multilabel)
+            valid = dataset_func(dataroot,mode='valid',multilabel=multilabel)
+            test = dataset_func(dataroot,mode='test',multilabel=multilabel)
+            dataset = train
+    classes = [i for i in range(dataset.num_class)]
+    input_channel = dataset.channel
     print('Print sample 0')
     samples = train[0] # data,len,label
     print(samples[0])

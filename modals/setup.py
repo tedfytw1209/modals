@@ -18,6 +18,7 @@ def create_parser(mode):
     parser.add_argument('--dataset', default='trec')
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
+    parser.add_argument('--default_split', action='store_true', help='use dataset deault split')
 
     ## Model and training setting
     parser.add_argument('--model_name',default='wrn')
@@ -99,7 +100,8 @@ def create_hparams(mode, FLAGS):
         'metric_learning': FLAGS.metric_learning,
         'subtrain_ratio': FLAGS.subtrain_ratio, ## for text data controlling ratio of training data
         'manifold_mixup': FLAGS.manifold_mixup,
-        'multilabel': FLAGS.multilabel
+        'multilabel': FLAGS.multilabel,
+        'default_split': FLAGS.default_split,
         }
 
     if FLAGS.enforce_prior:

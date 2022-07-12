@@ -6,10 +6,17 @@ import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
 from ray.tune.schedulers import PopulationBasedTraining
+from ray.tune import Callback
 
+class MyCallback(Callback):
+    def on_train_end(self, iteration, trials, trial, valid_acc,step_dic, **info):
+        print(f"Trail: {trial} Epoch: {iteration} Valid acc: {valid_acc}")
+        wandb.log(step_dic)
+
+API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
 class RayModel(tune.Trainable):
-    def _setup(self, *args):
+    def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
 
     def _train(self):
@@ -19,8 +26,9 @@ class RayModel(tune.Trainable):
         test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
         step_dic.update(info_dict)
         step_dic.update(info_dict_test)
-        wandb.log(step_dic)
-        return {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
+        #wandb.log(step_dic)
+        call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc, 'step_dic': step_dic}
+        return call_back_dic
 
     def _save(self, checkpoint_dir):
         print(checkpoint_dir)
@@ -96,7 +104,8 @@ def search():
         stop={"training_iteration": hparams['num_epochs']},
         config=hparams,
         local_dir=FLAGS.ray_dir,
-        num_samples=FLAGS.num_samples
+        num_samples=FLAGS.num_samples,
+        callbacks=[MyCallback()],
     )
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
