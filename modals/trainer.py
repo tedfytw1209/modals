@@ -648,7 +648,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             ptype = 'auroc'
         else:
             ptype = 'acc'
-        out_dic[f'train_{ptype}'] = perfrom
+        out_dic[f'train_{ptype}_avg'] = perfrom
         for i,e_c in enumerate(perfrom_cw):
             out_dic[f'train_{ptype}_c{i}'] = e_c
 
@@ -709,7 +709,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             ptype = 'auroc'
         else:
             ptype = 'acc'
-        out_dic[f'{mode}_{ptype}'] = perfrom
+        out_dic[f'{mode}_{ptype}_avg'] = perfrom
         for i,e_c in enumerate(perfrom_cw):
             out_dic[f'{mode}_{ptype}_c{i}'] = e_c
 
