@@ -607,8 +607,13 @@ class TSeriesModelTrainer(TextModelTrainer):
                 for t, p in zip(labels.view(-1), predicted.view(-1)):
                         confusion_matrix[t.long(), p.long()] += 1
             else:
-                predicted = torch.sigmoid(outputs.data)
-            preds.append(predicted.cpu().detach())
+                predicted = torch.sigmoid(outputs).cpu().detach()
+                if torch.any(torch.isinf(predicted)):
+                    print(labels)
+                    print(predicted)
+                    print(outputs)
+                    raise
+            preds.append(predicted)
             targets.append(labels.cpu().detach())
         
         if not self.multilabel:
@@ -620,9 +625,13 @@ class TSeriesModelTrainer(TextModelTrainer):
             try:
                 perfrom = 100 * roc_auc_score(targets_np, preds_np,average='macro')
             except Exception as e:
+                print('target shape: ',targets_np.shape)
+                print('preds shape: ',preds_np.shape)
                 nan_count = np.sum(np.isnan(preds_np))
                 inf_count = np.sum(np.isinf(preds_np))
                 print('predict nan, inf count: ',nan_count,inf_count)
+                print(np.sum(targets_np,axis=0))
+                print(preds_np[np.isinf(preds_np)])
                 raise e
             perfrom_cw = AUROC_cw(targets_np,preds_np)
             perfrom = perfrom_cw.mean()
