@@ -88,7 +88,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'fc_drop': 0.5}
         net = LSTM_attention(config)
         z_size = n_hidden
-    elif model_name == 'cnn_sleep': #with problems!!!
+    elif model_name == 'cnn_sleep': #
         #n_hidden = 512
         config = {
                   'n_channels': vocab,
