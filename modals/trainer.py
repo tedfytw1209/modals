@@ -613,7 +613,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                     print(torch.max(inputs))
                     print(torch.min(inputs))
                     print('Representation: ', features.shape)
-                    print(torch.max(features))
+                    print(features)
                     print(torch.min(features))
                     print('Labels: ', labels.shape)
                     print(labels)

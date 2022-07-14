@@ -165,14 +165,29 @@ class FunctionNegativeTripletSelector(TripletSelector):
             embeddings = embeddings.cpu()
         distance_matrix = pdist(embeddings)
         distance_matrix = distance_matrix.cpu()
+        if len(labels.shape)>1 and labels.shape[1]>1: #(N,#label)
+            multilabel = True
+            labels_count = torch.sum(labels,dim=0).cpu().data.numpy() #(#label)
+        else:
+            multilabel = False
 
-        labels = labels.cpu().data.numpy()
+        labels = labels.long().cpu().data.numpy() #!!! sure it's int
         triplets = []
-        if len(list(set(labels))) == 1:
+        if not multilabel and len(list(set(labels))) == 1: #only one label, no triplets
             return torch.LongTensor(triplets)
+        elif multilabel and  set([0,labels.shape[0]]) > set(labels_count): #if labels_count is subset
+            return torch.LongTensor(triplets)
+        
+        if multilabel:
+            search_labels = set([i for i,c in enumerate(labels_count) if c not in [0,labels.shape[0]]])
+        else:
+            search_labels = set(labels)
 
-        for label in set(labels):
-            label_mask = (labels == label)
+        for label in search_labels:
+            if not multilabel:
+                label_mask = (labels == label)
+            else:
+                label_mask = (labels[:,label] == 1)
             label_indices = np.where(label_mask)[0]
             if len(label_indices) < 2:
                 continue

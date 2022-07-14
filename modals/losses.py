@@ -24,7 +24,7 @@ class OnlineTripletLoss(nn.Module):
         self.margin = margin
         self.triplet_selector = triplet_selector
 
-    def forward(self, embeddings, target):
+    def forward(self, embeddings, target): #(batch,n_hidden), (batch,)/(batch,#label)
 
         triplets = self.triplet_selector.get_triplets(embeddings, target)
 
