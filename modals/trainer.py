@@ -608,7 +608,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                         confusion_matrix[t.long(), p.long()] += 1
             else:
                 predicted = torch.sigmoid(outputs).cpu().detach()
-                if torch.any(torch.isinf(predicted)):
+                if torch.any(torch.isnan(predicted)):
                     print(labels)
                     print(predicted)
                     print(outputs)
@@ -631,7 +631,8 @@ class TSeriesModelTrainer(TextModelTrainer):
                 inf_count = np.sum(np.isinf(preds_np))
                 print('predict nan, inf count: ',nan_count,inf_count)
                 print(np.sum(targets_np,axis=0))
-                print(preds_np[np.isinf(preds_np)])
+                print(np.sum(preds_np,axis=0))
+                print(preds_np[np.isnan(preds_np)])
                 raise e
             perfrom_cw = AUROC_cw(targets_np,preds_np)
             perfrom = perfrom_cw.mean()
