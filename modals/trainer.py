@@ -464,7 +464,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
         self.net = self.net.to(self.device)
         if self.multilabel:
-            self.criterion = nn.BCEWithLogitsLoss(reduce='mean')
+            self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
         else:
             self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
