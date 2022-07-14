@@ -609,10 +609,17 @@ class TSeriesModelTrainer(TextModelTrainer):
             else:
                 predicted = torch.sigmoid(outputs).cpu().detach()
                 if torch.any(torch.isnan(predicted)):
+                    print('Inputs:', inputs.shape)
+                    print(torch.max(inputs))
+                    print(torch.min(inputs))
+                    print('Representation: ', features.shape)
+                    print(torch.max(features))
+                    print(torch.min(features))
+                    print('Labels: ', labels.shape)
                     print(labels)
                     print(predicted)
                     print(outputs)
-                    raise
+                    assert False
             preds.append(predicted)
             targets.append(labels.cpu().detach())
         
