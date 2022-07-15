@@ -53,7 +53,7 @@ class LSTM_ecg(nn.Module): #LSTM for time series
         self.dropout = nn.Dropout(config['fc_drop'])
         self.concat_pool = config.get('concat_pool',False)
         if self.concat_pool:
-            self.concat_fc = nn.Sequential([nn.Dropout(config['fc_drop']),
+            self.concat_fc = nn.Sequential(*[nn.Dropout(config['fc_drop']),
                 nn.Linear(3 * config['n_hidden'], config['n_hidden']),
                 nn.BatchNorm1d(config['n_hidden']),
                 nn.ReLU(),])
@@ -105,24 +105,24 @@ class LSTM_ptb(nn.Module): #LSTM for PTBXL
         else:
             mult_factor = 1
             self.pool = LastPoolRNN(config['b_dir'])
-        self.concat_fc = nn.Sequential([
+        self.concat_fc = nn.Sequential(*[
                 nn.BatchNorm1d(self.bidir_factor * mult_factor * config['n_hidden']),
                 nn.Dropout(config['rnn_drop']),
-                nn.Linear(mult_factor * config['n_hidden'], config['n_hidden']),
+                nn.Linear(self.bidir_factor * mult_factor * config['n_hidden'], config['n_hidden']),
                 nn.ReLU(),])
-        self.fc = nn.Sequential([
-                nn.BatchNorm1d(self.bidir_factor * mult_factor * config['n_hidden']),
+        self.fc = nn.Sequential(*[
+                nn.BatchNorm1d(config['n_hidden']),
                 nn.Dropout(config['fc_drop']),
-                nn.Linear(mult_factor * config['n_hidden'], config['n_output'])])
+                nn.Linear(config['n_hidden'], config['n_output'])])
 
     def extract_features(self, texts, seq_lens):
         packed_embedded = nn.utils.rnn.pack_padded_sequence(
-            texts, seq_lens.cpu())  # seq_len:128 [0]: lenght of each sentence
+            texts, seq_lens.cpu(), batch_first=True)  # seq_len:128 [0]: lenght of each sentence
         rnn_out, (hidden, cell) = self.lstm(
             packed_embedded)  # bs X len X n_hidden
-        #out_pad, _out_len = rnn_utils.pad_packed_sequence(lstm_out, batch_first=True)
-        rnn_out = rnn_out.transpose(1, 2) # bs, n_hidden, len
-        features = self.pool(rnn_out) #bs, ch * (1+b_dir) * concat pool
+        out_pad, _out_len = rnn_utils.pad_packed_sequence(rnn_out, batch_first=True)
+        out_pad = out_pad.transpose(1, 2) # bs, n_hidden, len
+        features = self.pool(out_pad) #bs, ch * (1+b_dir) * concat pool
         features = self.concat_fc(features) #bs, ch
         return features
 
