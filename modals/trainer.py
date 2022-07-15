@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from networks.blstm import BiLSTM,LSTM
-from networks.LSTM import LSTM_ecg
+from networks.LSTM import LSTM_ecg,LSTM_ptb
 from networks.LSTM_attention import LSTM_attention
 from networks.Sleep_stager import SleepStagerChambon2018
 from torch.autograd import Variable
@@ -75,6 +75,19 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'rnn_drop': 0.2,
                   'fc_drop': 0.5}
         net = LSTM_ecg(config)
+        z_size = n_hidden
+    elif model_name == 'lstm_ptb':
+        n_hidden = 256
+        config = {
+                  'n_embed': vocab,
+                  'n_hidden': n_hidden,
+                  'n_output': n_class,
+                  'n_layers': 2,
+                  'b_dir': False,
+                  'concat_pool': True,
+                  'rnn_drop': 0.2,
+                  'fc_drop': 0.5}
+        net = LSTM_ptb(config)
         z_size = n_hidden
     elif model_name == 'lstm_atten':
         n_hidden = 512
