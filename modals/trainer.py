@@ -85,7 +85,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'n_layers': 2,
                   'b_dir': False,
                   'concat_pool': True,
-                  'rnn_drop': 0.2,
+                  'rnn_drop': 0.25,
                   'fc_drop': 0.5}
         net = LSTM_ptb(config)
         z_size = n_hidden
