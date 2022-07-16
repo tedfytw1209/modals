@@ -9,6 +9,7 @@ from networks.blstm import BiLSTM,LSTM
 from networks.LSTM import LSTM_ecg,LSTM_ptb
 from networks.LSTM_attention import LSTM_attention
 from networks.Sleep_stager import SleepStagerChambon2018
+from networks.resnet1d import resnet1d_wang
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
@@ -101,6 +102,16 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'fc_drop': 0.5}
         net = LSTM_attention(config)
         z_size = n_hidden
+    elif model_name == 'resnet_wang':
+        n_hidden = 128
+        config = {
+                  'input_channels': vocab,
+                  'inplanes': n_hidden,
+                  'num_classes': n_class,
+                  'kernel_size': 5,
+                  'ps_head': 0.5}
+        net = LSTM_attention(config)
+        z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'cnn_sleep': #
         #n_hidden = 512
         config = {
@@ -237,6 +248,7 @@ class TextModelTrainer(object):
         self.net.training = True
         self.scheduler = lr_scheduler.CosineAnnealingLR(
             self.optimizer, len(self.train_loader))  # cosine learning rate
+        
         train_losses = 0.0
         clf_losses = 0.0
         metric_losses = 0.0
@@ -481,7 +493,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
-            self.optimizer = optim.Adam(self.net.parameters(), self.hparams['lr']) #follow paper
+            self.optimizer = optim.AdamW(self.net.parameters(), lr=self.hparams['lr'], weight_decay=self.hparams['wd']) #follow ptbxl batchmark
             self.loss_dict = {'train': [], 'valid': []}
             if hparams['use_modals']:
                 print("\n=> ### Policy ###")
@@ -523,8 +535,10 @@ class TSeriesModelTrainer(TextModelTrainer):
     def _train(self, cur_epoch, trail_id):
         self.net.train()
         self.net.training = True
-        self.scheduler = lr_scheduler.CosineAnnealingLR(
-            self.optimizer, len(self.train_loader))  # cosine learning rate
+        '''self.scheduler = lr_scheduler.CosineAnnealingLR(
+            self.optimizer, len(self.train_loader))  # cosine learning rate'''
+        #follow ptbxl benchmark !!!
+        self.scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.hparams['lr'], epochs = self.hparams['num_epochs'], steps_per_epoch = len(self.train_loader))
         train_losses = 0.0
         clf_losses = 0.0
         metric_losses = 0.0

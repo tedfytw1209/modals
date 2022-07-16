@@ -2,12 +2,39 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from basic_conv1d import create_head1d,create_pool
-
 from enum import Enum
 import re
 #delegates
 import inspect
+class AdaptiveConcatPool1d(nn.Module):
+    "Layer that concats `AdaptiveAvgPool1d` and `AdaptiveMaxPool1d`."
+    def __init__(self, sz=None):
+        "Output will be 2*sz or 2 if sz is None"
+        super().__init__()
+        sz = sz or 1
+        self.ap,self.mp = nn.AdaptiveAvgPool1d(sz), nn.AdaptiveMaxPool1d(sz)
+    def forward(self, x): return torch.cat([self.mp(x), self.ap(x)], 1)
+
+def create_pool(concat_pooling=True):
+    layers = [AdaptiveConcatPool1d() if concat_pooling else nn.MaxPool1d(2), nn.Flatten()]
+    return nn.Sequential(*layers)
+
+def create_head1d(nf:int, nc:int, lin_ftrs=None, ps=0.5, bn_final:bool=False, bn:bool=True, act="relu", concat_pooling=True):
+    "Model head that takes `nf` features, runs through `lin_ftrs`, and about `nc` classes; added bn and act here"
+    lin_ftrs = [2*nf if concat_pooling else nf, nc] if lin_ftrs is None else [2*nf if concat_pooling else nf] + lin_ftrs + [nc] #was [nf, 256,nc]
+    ps = list(ps)
+    if len(ps)==1: ps = [ps[0]/2] * (len(lin_ftrs)-2) + ps
+    actns = [nn.ReLU(inplace=True) if act=="relu" else nn.ELU(inplace=True)] * (len(lin_ftrs)-2) + [None]
+    #layers = [AdaptiveConcatPool1d() if concat_pooling else nn.MaxPool1d(2), Flatten()]
+    layers = []
+    for ni,no,p,actn in zip(lin_ftrs[:-1],lin_ftrs[1:],ps,actns):
+        layers += [
+                nn.BatchNorm1d(ni),
+                nn.Dropout(p),
+                nn.Linear(ni, no),
+                actn,]
+    if bn_final: layers.append(nn.BatchNorm1d(lin_ftrs[-1], momentum=0.01))
+    return nn.Sequential(*layers)
 
 def delegates(to=None, keep=False):
     "Decorator: replace `**kwargs` in signature with params from `to`"
