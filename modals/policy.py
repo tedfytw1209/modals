@@ -264,7 +264,7 @@ class PolicyManager(object):
         encoder.eval()
         with torch.no_grad():
             for batch in dataloader:
-                inputs, seq_lens, labels = batch[0].to(
+                inputs, seq_lens, labels = batch[0].float().to(
                     self.device), batch[1].to(self.device), batch[2].to(self.device)
 
                 features = encoder.extract_features(inputs, seq_lens)
