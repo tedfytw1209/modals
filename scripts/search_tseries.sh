@@ -1,15 +1,16 @@
 if [[ $1 = "ptbxl" ]]; then
     CUDA_VISIBLE_DEVICES=3 \
     python search_tseries.py \
-        --model_name lstm \
-        --data_dir /mnt/data2/teddy/modals-main/modals/datasets/wisdm-dataset \
+        --model_name lstm_ptb \
+        --data_dir /mnt/data2/teddy/ptbxl-dataset \
         --dataset ptbxl \
         --subtrain_ratio 1.0 \
         --valid_size 0.1 \
-        --epochs 100 \
-	    --bs 100 \
+        --default_split \
+        --epochs 50 \
+	    --bs 128 \
 	    --lr 0.01 \
-        --gpu 0.15 --cpu 2 \
+        --gpu 0.25 --cpu 2 \
         --num_samples 16 --perturbation_interval 3  \
         --ray_name ray_experiment_ptbxl \
         --distance_metric loss \

@@ -110,7 +110,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'num_classes': n_class,
                   'kernel_size': 5,
                   'ps_head': 0.5}
-        net = LSTM_attention(config)
+        net = resnet1d_wang(config)
         z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'cnn_sleep': #
         #n_hidden = 512
@@ -580,7 +580,10 @@ class TSeriesModelTrainer(TextModelTrainer):
                 c_loss = mixup_criterion(
                     self.criterion, outputs, targets_a, targets_b, lam)
             else:
-                c_loss = self.criterion(outputs, labels)  # Loss
+                if self.multilabel:
+                    c_loss = self.criterion(outputs, labels.float())  # Loss
+                else:
+                    c_loss = self.criterion(outputs, labels.long())  # Loss
             clf_losses += c_loss.item()
             # total loss
             loss = c_loss
@@ -714,7 +717,10 @@ class TSeriesModelTrainer(TextModelTrainer):
                     self.device), batch[1].to(self.device), batch[2].to(self.device)
 
                 outputs = self.net(inputs, seq_lens)
-                loss = self.criterion(outputs, labels)  # Loss
+                if self.multilabel:
+                    loss = self.criterion(outputs, labels.float())  # Loss multilabel
+                else:
+                    loss = self.criterion(outputs, labels.long())  # Loss singlelabel
                 test_loss += loss.item()
 
                 if not self.multilabel:
@@ -732,7 +738,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         
         if not self.multilabel:
             perfrom = 100 * correct/total
-            perfrom_cw = 100 * confusion_matrix.diag()/confusion_matrix.sum(1)
+            perfrom_cw = 100 * confusion_matrix.diag() / (confusion_matrix.sum(1)+1e-12)
         else:
             targets_np = torch.cat(targets).numpy()
             preds_np = torch.cat(preds).numpy()
