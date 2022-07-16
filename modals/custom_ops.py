@@ -166,6 +166,7 @@ class FunctionNegativeTripletSelector(TripletSelector):
         distance_matrix = pdist(embeddings)
         distance_matrix = distance_matrix.cpu()
         if len(labels.shape)>1 and labels.shape[1]>1: #(N,#label)
+            print('Multilabel TripletSelector')
             multilabel = True
             labels_count = torch.sum(labels,dim=0).cpu().data.numpy() #(#label)
         else:

@@ -479,7 +479,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
-            default_split=hparams['default_split'])
+            default_split=hparams['default_split'],labelgroup=hparams['labelgroup'])
         random.seed()
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
@@ -494,6 +494,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             self.criterion = nn.CrossEntropyLoss()
         if hparams['mode'] in ['train', 'search']:
             self.optimizer = optim.AdamW(self.net.parameters(), lr=self.hparams['lr'], weight_decay=self.hparams['wd']) #follow ptbxl batchmark
+            self.scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.hparams['lr'], epochs = self.hparams['num_epochs'], steps_per_epoch = len(self.train_loader))
             self.loss_dict = {'train': [], 'valid': []}
             if hparams['use_modals']:
                 print("\n=> ### Policy ###")
@@ -538,7 +539,6 @@ class TSeriesModelTrainer(TextModelTrainer):
         '''self.scheduler = lr_scheduler.CosineAnnealingLR(
             self.optimizer, len(self.train_loader))  # cosine learning rate'''
         #follow ptbxl benchmark !!!
-        self.scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.hparams['lr'], epochs = self.hparams['num_epochs'], steps_per_epoch = len(self.train_loader))
         train_losses = 0.0
         clf_losses = 0.0
         metric_losses = 0.0

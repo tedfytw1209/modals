@@ -16,6 +16,7 @@ def create_parser(mode):
     ## Datasetting
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
     parser.add_argument('--dataset', default='trec')
+    parser.add_argument('--labelgroup', default='')
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
     parser.add_argument('--default_split', action='store_true', help='use dataset deault split')
@@ -102,6 +103,7 @@ def create_hparams(mode, FLAGS):
         'manifold_mixup': FLAGS.manifold_mixup,
         'multilabel': FLAGS.multilabel,
         'default_split': FLAGS.default_split,
+        'labelgroup': FLAGS.labelgroup,
         }
 
     if FLAGS.enforce_prior:

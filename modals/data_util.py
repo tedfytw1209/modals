@@ -100,9 +100,13 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
-def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', multilabel=False, default_split=False):
+def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
+        multilabel=False, default_split=False,labelgroup=''):
+    kwargs = {}
     if dataset_name == 'ptbxl':
         dataset_func = PTBXL
+        if labelgroup:
+            kwargs['labelgroup']=labelgroup
     elif dataset_name == 'wisdm':
         dataset_func = WISDM
     elif dataset_name == 'edfx':
@@ -112,7 +116,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
     if not default_split or dataset_name=='chapman': #chapman didn't have default split now!!!
-        dataset = dataset_func(dataroot,multilabel=multilabel)
+        dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
         total = len(dataset)
         random.seed(0) #!!!
         rd_idxs = [i for i in range(total)]
@@ -125,7 +129,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             train = Subset(dataset,train_idx)
     else:
         if dataset_name == 'edfx': #edfx have special split method
-            dataset = dataset_func(dataroot,multilabel=multilabel)
+            dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
             splits_proportions = dataset.CV_split_indices() #(k, ratio, sub_tr_idx, valid_idx, test_idx) * 5
             split_info = splits_proportions[0]
             sub_tr_idx, valid_idx, test_idx = split_info[2],split_info[3],split_info[4]
@@ -133,9 +137,9 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             valid = Subset(dataset,valid_idx)
             train = Subset(dataset,sub_tr_idx)
         else:
-            train = dataset_func(dataroot,mode='train',multilabel=multilabel)
-            valid = dataset_func(dataroot,mode='valid',multilabel=multilabel)
-            test = dataset_func(dataroot,mode='test',multilabel=multilabel)
+            train = dataset_func(dataroot,mode='train',multilabel=multilabel,**kwargs)
+            valid = dataset_func(dataroot,mode='valid',multilabel=multilabel,**kwargs)
+            test = dataset_func(dataroot,mode='test',multilabel=multilabel,**kwargs)
             dataset = train
     classes = [i for i in range(dataset.num_class)]
     input_channel = dataset.channel

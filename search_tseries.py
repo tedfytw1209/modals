@@ -46,7 +46,7 @@ def search():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
     #wandb
-    experiment_name = f'MODAL_search_{FLAGS.dataset}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
+    experiment_name = f'MODAL_search_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
     '''run_log = wandb.init(config=FLAGS, 
                   project='MODAL',
                   name=experiment_name,
