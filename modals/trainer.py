@@ -610,6 +610,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             loss.backward()  # Backward Propagation
             clip_grad_norm_(self.net.parameters(), 5.0)
             self.optimizer.step()  # Optimizer update
+            self.scheduler.step()
 
             if self.hparams['enforce_prior']:
                 # Discriminator update

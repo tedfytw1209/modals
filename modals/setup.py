@@ -63,7 +63,7 @@ def create_parser(mode):
         parser.add_argument('--gpu', type=float, default=0.12, help='Allocated by Ray')
         parser.add_argument('--perturbation_interval', type=int, default=3)
         parser.add_argument('--ray_name', type=str, default='ray_experiment')
-
+        parser.add_argument('--ray_replay', type=str, default='', help='ray replay pbt')
     else:
         raise ValueError('unknown state')
 

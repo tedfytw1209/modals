@@ -7,7 +7,7 @@ from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
 from ray.tune.schedulers import PopulationBasedTraining
 from ray.tune.integration.wandb import WandbTrainableMixin
-
+from ray.tune.schedulers import PopulationBasedTrainingReplay
 
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
@@ -46,7 +46,7 @@ def search():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
     #wandb
-    experiment_name = f'MODAL_search_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
+    experiment_name = f'MODAL_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
     '''run_log = wandb.init(config=FLAGS, 
                   project='MODAL',
                   name=experiment_name,
@@ -60,7 +60,7 @@ def search():
         #'name':experiment_name,
         'dir':'./',
         'job_type':"DataAugment",
-        'reinit':True,
+        'reinit':False,
         'api_key':API_KEY,
     }
     hparams['wandb'] = wandb_config
@@ -91,34 +91,53 @@ def search():
         return config
 
     ray.init()
-
-    pbt = PopulationBasedTraining(
-        time_attr="training_iteration",
-        perturbation_interval=FLAGS.perturbation_interval,
-        custom_explore_fn=explore,
-        log_config=True)
-
-    analysis = tune.run(
-        RayModel,
-        name=hparams['ray_name'],
-        scheduler=pbt,
-        reuse_actors=True,
-        verbose=True,
-        metric="valid_acc",
-        mode='max',
-        checkpoint_score_attr="valid_acc",
-        #checkpoint_freq=FLAGS.checkpoint_freq,
-        resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
-        stop={"training_iteration": hparams['num_epochs']},
-        config=hparams,
-        local_dir=FLAGS.ray_dir,
-        num_samples=FLAGS.num_samples,
-    )
+    if not FLAGS.ray_replay:
+        pbt = PopulationBasedTraining(
+            time_attr="training_iteration",
+            perturbation_interval=FLAGS.perturbation_interval,
+            custom_explore_fn=explore,
+            log_config=True)
+        analysis = tune.run(
+            RayModel,
+            name=hparams['ray_name'],
+            scheduler=pbt,
+            reuse_actors=True,
+            verbose=True,
+            metric="valid_acc",
+            mode='max',
+            checkpoint_score_attr="valid_acc",
+            #checkpoint_freq=FLAGS.checkpoint_freq,
+            resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
+            stop={"training_iteration": hparams['num_epochs']},
+            config=hparams,
+            local_dir=FLAGS.ray_dir,
+            num_samples=FLAGS.num_samples,
+            )
+    else:
+        pbt = PopulationBasedTrainingReplay(FLAGS.ray_replay)
+        analysis = tune.run(
+            RayModel,
+            name=hparams['ray_name'],
+            scheduler=pbt,
+            reuse_actors=True,
+            verbose=True,
+            metric="valid_acc",
+            mode='max',
+            checkpoint_score_attr="valid_acc",
+            #checkpoint_freq=FLAGS.checkpoint_freq,
+            resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
+            stop={"training_iteration": hparams['num_epochs']},
+            config=hparams,
+            local_dir=FLAGS.ray_dir,
+            num_samples=1,
+            )
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
     print(analysis.best_trial)
+    print('pbt result:')
+    print(pbt.config)  # Initial config
+    print(pbt._policy)  # Schedule, in the form of tuples (step, config)
 
     wandb.finish()
-
 if __name__ == "__main__":
     search()
