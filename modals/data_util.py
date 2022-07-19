@@ -117,7 +117,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset_func = Chapman
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
-    #rand augment
+    #rand augment !!! have bug when not using default split
     train_transfrom = []
     if randaug_dic.get('randaug',False):
         train_transfrom = [

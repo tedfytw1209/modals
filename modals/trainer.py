@@ -475,11 +475,13 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(hparams)
         self.name = name
         self.multilabel = hparams['multilabel']
+        self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
+            'rand_m':hparams.get('rand_m',0)}
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
-            default_split=hparams['default_split'],labelgroup=hparams['labelgroup'])
+            default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic)
         random.seed()
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
