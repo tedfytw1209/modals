@@ -5,7 +5,7 @@ import ray
 import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
-from ray.tune.schedulers import PopulationBasedTraining
+from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
 
@@ -91,7 +91,7 @@ def search():
         return config
 
     ray.init()
-    if not FLAGS.ray_replay:
+    if hparams['use_modals']: #MODALS search
         pbt = PopulationBasedTraining(
             time_attr="training_iteration",
             perturbation_interval=FLAGS.perturbation_interval,
@@ -113,13 +113,18 @@ def search():
             local_dir=FLAGS.ray_dir,
             num_samples=FLAGS.num_samples,
             )
-    else:
-        pbt = PopulationBasedTrainingReplay(FLAGS.ray_replay)
+    else: #randaug search tune.grid_search from rand_m*rand_n
+        total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
+        print(f'RandAugment grid search for {total_grid} samples')
+        hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+        hparams['rand_n'] = tune.grid_search(hparams['rand_n'])
+        tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
+            reduction_factor=3,brackets=1)
         analysis = tune.run(
             RayModel,
             name=hparams['ray_name'],
-            scheduler=pbt,
-            reuse_actors=True,
+            scheduler=tune_scheduler,
+            #reuse_actors=True,
             verbose=True,
             metric="valid_acc",
             mode='max',
@@ -129,8 +134,9 @@ def search():
             stop={"training_iteration": hparams['num_epochs']},
             config=hparams,
             local_dir=FLAGS.ray_dir,
-            num_samples=1,
+            num_samples=1, #grid search no need
             )
+    
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
     print(analysis.best_trial)

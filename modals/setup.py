@@ -49,11 +49,15 @@ def create_parser(mode):
     parser.add_argument('--alpha', type=float, default=1.0, help='mixup parameter')
     parser.add_argument('--manifold_mixup', action='store_true', help='manifold mixup benchmark')
 
+    parser.add_argument('--randaug', action='store_true', help='RandAugment benchmark')
+
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
         parser.add_argument('--policy_epochs', type=int, default=200, help='number of epochs/iterations policy trained for')
         parser.add_argument('--name', type=str, default='autoaug')
+        parser.add_argument('--rand_m', type=float, default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
+        parser.add_argument('--rand_n', type=int, default=2, help='RandAugment parameter n: Number of augmentation transformations')
 
     elif mode == 'search':
         ## Ray setting
@@ -64,6 +68,9 @@ def create_parser(mode):
         parser.add_argument('--perturbation_interval', type=int, default=3)
         parser.add_argument('--ray_name', type=str, default='ray_experiment')
         parser.add_argument('--ray_replay', type=str, default='', help='ray replay pbt')
+        parser.add_argument('--rand_m',type=float, nargs='+', default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
+        parser.add_argument('--rand_n',type=int, nargs='+', default=2, help='RandAugment parameter n: Number of augmentation transformations')
+        
     else:
         raise ValueError('unknown state')
 
@@ -81,6 +88,10 @@ def create_hparams(mode, FLAGS):
 
   Returns: dict
   """
+    if FLAGS.randaug:
+        print('RandAugment Parameters:')
+        print(FLAGS.rand_m)
+        print(FLAGS.rand_n)
     hparams = {
         'valid_size': FLAGS.valid_size,
         'dataset_name': FLAGS.dataset,
@@ -90,6 +101,7 @@ def create_hparams(mode, FLAGS):
         'multilabel': FLAGS.multilabel,
         'gradient_clipping_by_global_norm': 5.0,
         'mixup': FLAGS.mixup,
+        'alpha': FLAGS.alpha,
         'lr': FLAGS.lr,
         'wd': FLAGS.wd,
         'momentum': 0.9,
@@ -104,6 +116,7 @@ def create_hparams(mode, FLAGS):
         'multilabel': FLAGS.multilabel,
         'default_split': FLAGS.default_split,
         'labelgroup': FLAGS.labelgroup,
+        'randaug': FLAGS.randaug,
         }
 
     if FLAGS.enforce_prior:
@@ -135,12 +148,19 @@ def create_hparams(mode, FLAGS):
                 parsed_policy = FLAGS.hp_policy.split(',')
                 parsed_policy = [int(p) for p in parsed_policy]
                 hparams['hp_policy'] = parsed_policy
-
+        if FLAGS.randaug:
+            hparams['rand_m'] = FLAGS.rand_m
+            hparams['rand_n'] = FLAGS.rand_n
     elif mode == 'search':
-        hparams['use_modals'] = True
-        hparams['policy_path'] = None
-        # default start value of 0
-        hparams['hp_policy'] = [0 for _ in range(4 * NUM_HP_TRANSFORM)]
+        if not FLAGS.randaug: #MODAL search
+            hparams['use_modals'] = True
+            hparams['policy_path'] = None
+            # default start value of 0
+            hparams['hp_policy'] = [0 for _ in range(4 * NUM_HP_TRANSFORM)]
+        else: #RandAug search
+            hparams['use_modals'] = False
+            hparams['rand_m'] = FLAGS.rand_m
+            hparams['rand_n'] = FLAGS.rand_n
         hparams['ray_name']  = FLAGS.ray_name
 
     else:

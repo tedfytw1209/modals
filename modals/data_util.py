@@ -11,6 +11,7 @@ from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
 from modals.datasets import PTBXL,WISDM,Chapman,EDFX
+from modals.operation_tseries import ToTensor,RandAugment
 
 def save_txt_dataset(dataset, path):
     if not isinstance(path, Path):
@@ -101,8 +102,9 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
-        multilabel=False, default_split=False,labelgroup=''):
+        multilabel=False, default_split=False,labelgroup='',randaug_dic={}):
     kwargs = {}
+    #choose dataset
     if dataset_name == 'ptbxl':
         dataset_func = PTBXL
         if labelgroup:
@@ -115,6 +117,14 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset_func = Chapman
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
+    #rand augment
+    train_transfrom = []
+    if randaug_dic.get('randaug',False):
+        train_transfrom = [
+            ToTensor(),
+            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'])
+        ]
+    #split
     if not default_split or dataset_name=='chapman': #chapman didn't have default split now!!!
         dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
         total = len(dataset)
@@ -137,7 +147,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             valid = Subset(dataset,valid_idx)
             train = Subset(dataset,sub_tr_idx)
         else:
-            train = dataset_func(dataroot,mode='train',multilabel=multilabel,**kwargs)
+            train = dataset_func(dataroot,mode='train',multilabel=multilabel,augmentations=train_transfrom,**kwargs)
             valid = dataset_func(dataroot,mode='valid',multilabel=multilabel,**kwargs)
             test = dataset_func(dataroot,mode='test',multilabel=multilabel,**kwargs)
             dataset = train

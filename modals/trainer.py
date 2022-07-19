@@ -553,7 +553,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
             inputs, seq_lens, labels = batch[0].float().to(
-                self.device), batch[1].cpu(), batch[2].to(self.device)
+                self.device), batch[1].cpu(), batch[2].long().to(self.device)
             seed_features = self.net.extract_features(inputs, seq_lens)
             features = seed_features
             if self.hparams['manifold_mixup']:
