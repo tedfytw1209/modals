@@ -477,6 +477,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.multilabel = hparams['multilabel']
         self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
             'rand_m':hparams.get('rand_m',0)}
+        print('Rand Augment: ',self.randaug_dic)
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],

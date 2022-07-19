@@ -609,7 +609,7 @@ class ToTensor:
     def __init__(self) -> None:
         pass
     def __call__(self, img):
-        return torch.tensor(img)
+        return torch.tensor(img).float()
 
 class RandAugment:
     def __init__(self, n, m, rd_seed=42):
@@ -619,11 +619,13 @@ class RandAugment:
         self.rd_seed = rd_seed
 
     def __call__(self, img):
+        #print(img.shape)
+        seq_len , channel = img.shape
+        img = img.permute(1,0).view(1,channel,seq_len)
         ops = random.choices(self.augment_list, k=self.n)
         for op, minval, maxval in ops:
-            seq_len , channel = img.shape
-            img = img.permute(1,0).view(1,channel,seq_len)
             val = float(self.m) * float(maxval - minval) + minval
+            #print(val)
             img = op(img, val,random_state=self.rd_seed)
 
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)

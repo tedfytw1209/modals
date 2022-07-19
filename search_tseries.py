@@ -45,8 +45,12 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
 def search():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
+    if FLAGS.randaug:
+        method = 'RandAug'
+    else:
+        method = 'MODAL'
     #wandb
-    experiment_name = f'MODAL_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
+    experiment_name = f'{method}_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
     '''run_log = wandb.init(config=FLAGS, 
                   project='MODAL',
                   name=experiment_name,
@@ -118,7 +122,9 @@ def search():
         print(f'RandAugment grid search for {total_grid} samples')
         hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         hparams['rand_n'] = tune.grid_search(hparams['rand_n'])
-        tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
+        #tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
+        #    reduction_factor=3,brackets=1)
+        tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=10,
             reduction_factor=3,brackets=1)
         analysis = tune.run(
             RayModel,

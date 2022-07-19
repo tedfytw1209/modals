@@ -13,6 +13,8 @@ def main(FLAGS, hparams):
         Aug_type = 'MIXUP'
     elif FLAGS.manifold_mixup:
         Aug_type = 'MANIFOLDMIXUP'
+    elif FLAGS.randaug:
+        Aug_type = f'RANDAUG_{FLAGS.rand_m}_{FLAGS.rand_n}'
     else:
         Aug_type = 'NOAUG'
     experiment_name = f'{Aug_type}_train_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}'
