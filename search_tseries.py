@@ -117,6 +117,9 @@ def search():
             local_dir=FLAGS.ray_dir,
             num_samples=FLAGS.num_samples,
             )
+        print('pbt result:')
+        print(pbt.config)  # Initial config
+        print(pbt._policy)  # Schedule, in the form of tuples (step, config)
     else: #randaug search tune.grid_search from rand_m*rand_n
         total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
         print(f'RandAugment grid search for {total_grid} samples')
@@ -124,8 +127,9 @@ def search():
         hparams['rand_n'] = tune.grid_search(hparams['rand_n'])
         #tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
         #    reduction_factor=3,brackets=1)
-        tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=10,
-            reduction_factor=3,brackets=1)
+        '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
+            reduction_factor=3,brackets=1)'''
+        tune_scheduler = None
         analysis = tune.run(
             RayModel,
             name=hparams['ray_name'],
@@ -146,9 +150,7 @@ def search():
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
     print(analysis.best_trial)
-    print('pbt result:')
-    print(pbt.config)  # Initial config
-    print(pbt._policy)  # Schedule, in the form of tuples (step, config)
+    
 
     wandb.finish()
 if __name__ == "__main__":
