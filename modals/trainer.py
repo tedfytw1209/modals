@@ -416,9 +416,9 @@ class TextModelTrainer(object):
         return train_acc, val_acc
 
     # for benchmark
-    def save_checkpoint(self, ckpt_dir, epoch):
+    def save_checkpoint(self, ckpt_dir, epoch, title=''):
         path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}_{self.file_name}')
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}_{self.file_name}{title}')
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
 

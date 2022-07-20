@@ -27,7 +27,7 @@ def main(FLAGS, hparams):
                   reinit=True)
     if FLAGS.restore is not None:
         start_epoch, _ = trainer.load_model(FLAGS.restore)
-
+    best_valid_acc,best_model = 0,None
     for e in range(start_epoch+1, hparams['num_epochs']+1):
         step_dic = {'epoch':e}
         train_acc, valid_acc, info_dict = trainer.run_model(e,trail_id)
@@ -35,12 +35,17 @@ def main(FLAGS, hparams):
         if e % 20 == 0:
             # print(hparams)
             trainer.save_checkpoint(hparams['checkpoint_dir'], e)
-            test_acc, test_loss, info_dict_test = trainer._test(e, trail_id, 'test')
-            step_dic.update(info_dict_test)
+        test_acc, test_loss, info_dict_test = trainer._test(e, trail_id, 'test')
+        if valid_acc>best_valid_acc:
+            best_valid_acc = valid_acc
+            trainer.save_checkpoint(hparams['checkpoint_dir'], e,title='best')
+            step_dic['best_valid_acc_avg'] = valid_acc
+            step_dic['best_test_acc_avg'] = test_acc
+        step_dic.update(info_dict_test)
         wandb.log(step_dic)
     trainer.save_checkpoint(hparams['checkpoint_dir'], e)
-    test_acc, test_loss, info_dict_test = trainer._test(hparams['num_epochs'], trail_id, 'test')
-    step_dic.update(info_dict_test)
+    #test_acc, test_loss, info_dict_test = trainer._test(hparams['num_epochs'], trail_id, 'test')
+    #step_dic.update(info_dict_test)
     wandb.log(step_dic)
 
 if __name__ == "__main__":
