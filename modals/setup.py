@@ -48,7 +48,6 @@ def create_parser(mode):
     parser.add_argument('--mixup', action='store_true', help='mixup benchmark')
     parser.add_argument('--alpha', type=float, default=1.0, help='mixup parameter')
     parser.add_argument('--manifold_mixup', action='store_true', help='manifold mixup benchmark')
-
     parser.add_argument('--randaug', action='store_true', help='RandAugment benchmark')
 
     if mode == 'train':

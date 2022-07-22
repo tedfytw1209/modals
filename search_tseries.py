@@ -77,9 +77,9 @@ def search():
         'dir':'./',
         'job_type':"DataAugment",
         'reinit':False,
-        'api_key':API_KEY,
-        "log_config": True,
+        'api_key':API_KEY
     }
+    hparams["log_config"]= True
     hparams['wandb'] = wandb_config
 
     # if FLAGS.restore:
