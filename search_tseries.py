@@ -14,12 +14,15 @@ API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
+        self.result_valid_dic, self.result_test_dic = {}, {}
 
     def step(self):#use step replace _train
         print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
         step_dic = {f'epoch':self._iteration}
         train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
         test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
+        self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
+        self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
         step_dic.update(info_dict)
         step_dic.update(info_dict_test)
         wandb.log(step_dic)
@@ -40,6 +43,12 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         self.config = new_config
         self.trainer.reset_config(self.config)
         return True
+    
+    def cleanup(self):
+        step_dic = {f'epoch':self._iteration}
+        step_dic.update(self.result_valid_dic)
+        step_dic.update(self.result_test_dic)
+        wandb.log(step_dic)
 
 
 def search():
@@ -58,7 +67,7 @@ def search():
                   job_type="DataAugment",
                   reinit=True)'''
     wandb_config = {
-        'config':FLAGS, 
+        #'config':FLAGS, 
         'project':'MODAL',
         'group':experiment_name,
         #'name':experiment_name,
@@ -66,6 +75,7 @@ def search():
         'job_type':"DataAugment",
         'reinit':False,
         'api_key':API_KEY,
+        "log_config": True,
     }
     hparams['wandb'] = wandb_config
 

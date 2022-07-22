@@ -39,6 +39,8 @@ def main(FLAGS, hparams):
         if valid_acc>best_valid_acc:
             best_valid_acc = valid_acc
             trainer.save_checkpoint(hparams['checkpoint_dir'], e,title='best')
+            result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
+            result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
             step_dic['best_valid_acc_avg'] = valid_acc
             step_dic['best_test_acc_avg'] = test_acc
         step_dic.update(info_dict_test)
@@ -46,6 +48,8 @@ def main(FLAGS, hparams):
     trainer.save_checkpoint(hparams['checkpoint_dir'], e)
     #test_acc, test_loss, info_dict_test = trainer._test(hparams['num_epochs'], trail_id, 'test')
     #step_dic.update(info_dict_test)
+    step_dic.update(result_valid_dic)
+    step_dic.update(result_test_dic)
     wandb.log(step_dic)
 
 if __name__ == "__main__":
