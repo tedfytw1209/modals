@@ -1,6 +1,9 @@
 from modals.trainer import TextModelTrainer,TSeriesModelTrainer
 from modals.setup import create_parser, create_hparams
 import wandb
+import time
+
+now_str = time.strftime("%Y%m%d-%H%M%S")
 
 def main(FLAGS, hparams):
     start_epoch = 0
@@ -21,7 +24,7 @@ def main(FLAGS, hparams):
     run_log = wandb.init(config=FLAGS, 
                   project='MODAL',
                   group=experiment_name,
-                  name=experiment_name,
+                  name=f'{now_str}_' + experiment_name,
                   dir='./',
                   job_type="DataAugment",
                   reinit=True)
