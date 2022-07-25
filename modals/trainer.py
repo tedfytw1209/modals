@@ -479,11 +479,20 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
             'rand_m':hparams.get('rand_m',0)}
         print('Rand Augment: ',self.randaug_dic)
+        fix_policy = hparams['fix_policy']
+        if fix_policy==None:
+            fix_policy = []
+        elif ',' in fix_policy:
+            fix_policy = fix_policy.split(',')
+        else:
+            fix_policy = [fix_policy]
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
-            default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic)
+            default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
+            fix_policy_list=fix_policy
+            )
         random.seed()
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')

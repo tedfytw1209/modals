@@ -563,7 +563,6 @@ def RR_permutation(X, magnitude,sfreq=100, random_state=None, *args, **kwargs): 
     From 'Nita, Sihem, et al. 
     "A new data augmentation convolutional neural network for human emotion recognition based on ECG signals."
     Biomedical Signal Processing and Control 75 (2022): 103580.'
-    RR-interval permutation. RR peaks detect using biosppy
     """
     #biosppy.signals.ecg.ecg
     x = X.detach().cpu().numpy()
@@ -579,11 +578,6 @@ def RR_permutation(X, magnitude,sfreq=100, random_state=None, *args, **kwargs): 
     for end_point in rpeaks_array + [num_len]:
         seg_list.append(x[:,:,start_point:end_point])
         start_point = end_point
-    #check
-    check_x = np.concatenate(seg_list,axis=2)
-    print(check_x.shape)
-    print('seg num:', len(seg_list))
-    print('rpeak count:',len(rpeaks_array))
     #permutation
     perm_seg_list = []
     for i in range(len(seg_list)):
@@ -611,17 +605,14 @@ def QRS_resample(X, magnitude,sfreq=100, random_state=None, *args, **kwargs):
     rng = check_random_state(random_state)
     select_lead = rng.randint(0, num_leads-1)
     rpeaks_array = detectors.pan_tompkins_detector(x[0,select_lead,:])
-    #tmp
-    plt.clf()
-    plt.plot(x[0,select_lead,:])
-    plt.plot(rpeaks_array, x[0,select_lead,rpeaks_array], 'ro')
-    plt.title("Detected R peaks")
-    plt.show()
     first_p,last_p = int(max(rpeaks_array[0] - qrs_interval/2,0)), int(rpeaks_array[-1] - qrs_interval/2)
     dup_x = np.concatenate([x[:,:,first_p:last_p],x[:,:,first_p:last_p]],axis=2)
-    window_start = rng.randint(0, dup_x.shape[2] - window_size)
-    new_x = dup_x[:,:,window_start:window_start+window_size]
-    new_x = torch.from_numpy(new_x).float()
+    if dup_x.shape[2] >= window_size: #if long enough
+        window_start = rng.randint(0, dup_x.shape[2] - window_size)
+        new_x = dup_x[:,:,window_start:window_start+window_size]
+        new_x = torch.from_numpy(new_x).float()
+    else:
+        new_x = X.detach().cpu()
     return new_x
 
 TS_OPS_NAMES = [
@@ -708,24 +699,28 @@ class RandAugment:
 
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
-class Transfrom:
-    def __init__(self, p, m, name):
+class TransfromAugment:
+    def __init__(self, names,m ,p=0.5,n=1):
+        print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
         self.m = m      # [0, 1]
-        self.name = name
-        self.augment = get_augment(name)
+        self.n = n
+        self.names = names
 
     def __call__(self, img, rd_seed=None):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
-        use_op = random.random() < self.p
-        if use_op:
-            op, minval, maxval = self.augment
-            val = float(self.m) * float(maxval - minval) + minval
-            img = op(img, val,random_state=rd_seed)
-        else: #pass
-            pass
+        select_names = random.choices(self.names, k=self.n)
+        for name in select_names:
+            augment = get_augment(name)
+            use_op = random.random() < self.p
+            if use_op:
+                op, minval, maxval = augment
+                val = float(self.m) * float(maxval - minval) + minval
+                img = op(img, val,random_state=rd_seed)
+            else: #pass
+                pass
 
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 

@@ -49,14 +49,14 @@ def create_parser(mode):
     parser.add_argument('--alpha', type=float, default=1.0, help='mixup parameter')
     parser.add_argument('--manifold_mixup', action='store_true', help='manifold mixup benchmark')
     parser.add_argument('--randaug', action='store_true', help='RandAugment benchmark')
-
+    parser.add_argument('--fix_policy', type=str, default=None, help='either a comma separated list of values')
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
         parser.add_argument('--policy_epochs', type=int, default=200, help='number of epochs/iterations policy trained for')
         parser.add_argument('--name', type=str, default='autoaug')
         parser.add_argument('--rand_m', type=float, default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
-        parser.add_argument('--rand_n', type=int, default=2, help='RandAugment parameter n: Number of augmentation transformations')
+        parser.add_argument('--rand_n', type=int, default=1, help='RandAugment parameter n: Number of augmentation transformations')
 
     elif mode == 'search':
         ## Ray setting
@@ -68,7 +68,7 @@ def create_parser(mode):
         parser.add_argument('--ray_name', type=str, default='ray_experiment')
         parser.add_argument('--ray_replay', type=str, default='', help='ray replay pbt')
         parser.add_argument('--rand_m',type=float, nargs='+', default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
-        parser.add_argument('--rand_n',type=int, nargs='+', default=2, help='RandAugment parameter n: Number of augmentation transformations')
+        parser.add_argument('--rand_n',type=int, nargs='+', default=1, help='RandAugment parameter n: Number of augmentation transformations')
         
     else:
         raise ValueError('unknown state')
@@ -130,6 +130,7 @@ def create_hparams(mode, FLAGS):
         hparams['use_modals'] = FLAGS.use_modals
         hparams['policy_path'] = None
         hparams['hp_policy'] = None
+        hparams['fix_policy'] = FLAGS.fix_policy
         if FLAGS.use_modals:
             if FLAGS.hp_policy == 'random':
                 # random policy
@@ -147,7 +148,7 @@ def create_hparams(mode, FLAGS):
                 parsed_policy = FLAGS.hp_policy.split(',')
                 parsed_policy = [int(p) for p in parsed_policy]
                 hparams['hp_policy'] = parsed_policy
-        if FLAGS.randaug:
+        if FLAGS.randaug or FLAGS.fix_policy:
             hparams['rand_m'] = FLAGS.rand_m
             hparams['rand_n'] = FLAGS.rand_n
     elif mode == 'search':

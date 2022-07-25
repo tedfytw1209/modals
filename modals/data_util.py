@@ -11,7 +11,7 @@ from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
 from modals.datasets import PTBXL,WISDM,Chapman,EDFX
-from modals.operation_tseries import ToTensor,RandAugment
+from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment
 
 def save_txt_dataset(dataset, path):
     if not isinstance(path, Path):
@@ -102,7 +102,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
-        multilabel=False, default_split=False,labelgroup='',randaug_dic={}):
+        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[]):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -120,10 +120,17 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     #rand augment !!! have bug when not using default split
     train_transfrom = []
     if randaug_dic.get('randaug',False):
-        train_transfrom = [
+        print('Using RandAugment')
+        train_transfrom.extend([
             ToTensor(),
-            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'])
-        ]
+            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'])])
+    if len(fix_policy_list)>0:
+        
+        train_transfrom.extend([
+            ToTensor(),
+            TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'])
+            ])
+    
     #split
     if not default_split or dataset_name=='chapman': #chapman didn't have default split now!!!
         dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
