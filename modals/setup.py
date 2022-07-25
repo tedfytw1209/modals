@@ -116,6 +116,7 @@ def create_hparams(mode, FLAGS):
         'default_split': FLAGS.default_split,
         'labelgroup': FLAGS.labelgroup,
         'randaug': FLAGS.randaug,
+        'fix_policy': FLAGS.fix_policy,
         }
 
     if FLAGS.enforce_prior:

@@ -18,9 +18,10 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
-        wandb.config.update(self.config)
 
     def step(self):#use step replace _train
+        if self._iteration==0:
+            wandb.config.update(self.config)
         print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
         step_dic = {f'epoch':self._iteration}
         train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
@@ -29,9 +30,12 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
         step_dic.update(info_dict)
         step_dic.update(info_dict_test)
+        #if last epoch
+        if self._iteration==self.config['num_epochs']-1:
+            step_dic.update(self.result_valid_dic)
+            step_dic.update(self.result_test_dic)
         wandb.log(step_dic)
         call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
-        #call_back_dic.update(step_dic)
         return call_back_dic
 
     def _save(self, checkpoint_dir):
@@ -48,12 +52,6 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         self.trainer.reset_config(self.config)
         return True
     
-    def cleanup(self):
-        step_dic = {f'epoch':self._iteration}
-        step_dic.update(self.result_valid_dic)
-        step_dic.update(self.result_test_dic)
-        wandb.log(step_dic)
-
 
 def search():
     FLAGS = create_parser('search')

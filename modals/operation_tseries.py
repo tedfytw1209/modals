@@ -569,7 +569,8 @@ def RR_permutation(X, magnitude,sfreq=100, random_state=None, *args, **kwargs): 
     num_sample, num_leads, num_len = x.shape
     detectors = Detectors(sfreq) #need input ecg: (seq_len)
     rng = check_random_state(random_state)
-    select_lead = rng.randint(0, num_leads-1)
+    #select_lead = rng.randint(0, num_leads-1)
+    select_lead = 0 #!!!tmp
     rpeaks_array = detectors.two_average_detector(x[0,select_lead,:])
     seg_ids = [i for i in range(len(rpeaks_array)-1)]
     permut_seg_ids = rng.permutation(seg_ids)
@@ -603,7 +604,8 @@ def QRS_resample(X, magnitude,sfreq=100, random_state=None, *args, **kwargs):
     num_sample, num_leads, num_len = x.shape
     window_size = num_len
     rng = check_random_state(random_state)
-    select_lead = rng.randint(0, num_leads-1)
+    #select_lead = rng.randint(0, num_leads-1)
+    select_lead = 0 #!!!tmp
     rpeaks_array = detectors.pan_tompkins_detector(x[0,select_lead,:])
     first_p,last_p = int(max(rpeaks_array[0] - qrs_interval/2,0)), int(rpeaks_array[-1] - qrs_interval/2)
     dup_x = np.concatenate([x[:,:,first_p:last_p],x[:,:,first_p:last_p]],axis=2)
