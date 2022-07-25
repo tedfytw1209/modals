@@ -696,7 +696,7 @@ class RandAugment:
         self.m = m      # [0, 1]
         self.augment_list = TS_AUGMENT_LIST
 
-    def __call__(self, img):
+    def __call__(self, img, rd_seed=None):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
@@ -704,7 +704,7 @@ class RandAugment:
         for op, minval, maxval in ops:
             val = float(self.m) * float(maxval - minval) + minval
             #print(val)
-            img = op(img, val)
+            img = op(img, val,random_state=rd_seed)
 
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
@@ -715,7 +715,7 @@ class Transfrom:
         self.name = name
         self.augment = get_augment(name)
 
-    def __call__(self, img):
+    def __call__(self, img, rd_seed=None):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
@@ -723,7 +723,7 @@ class Transfrom:
         if use_op:
             op, minval, maxval = self.augment
             val = float(self.m) * float(maxval - minval) + minval
-            img = op(img, val)
+            img = op(img, val,random_state=rd_seed)
         else: #pass
             pass
 

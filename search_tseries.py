@@ -18,6 +18,7 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
+        wandb.config.update(self.config)
 
     def step(self):#use step replace _train
         print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')

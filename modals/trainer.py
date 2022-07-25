@@ -30,7 +30,7 @@ from modals.custom_ops import (HardestNegativeTripletSelector,
                                SemihardNegativeTripletSelector)
 from modals.losses import (OnlineTripletLoss, adverserial_loss,
                            discriminator_loss)
-
+import wandb
 
 def count_parameters(model):
     temp = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -473,6 +473,7 @@ class TSeriesModelTrainer(TextModelTrainer):
     def __init__(self, hparams, name=''):
         self.hparams = hparams
         print(hparams)
+        #wandb.config.update(hparams)
         self.name = name
         self.multilabel = hparams['multilabel']
         self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
