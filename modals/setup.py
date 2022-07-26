@@ -153,15 +153,21 @@ def create_hparams(mode, FLAGS):
             hparams['rand_m'] = FLAGS.rand_m
             hparams['rand_n'] = FLAGS.rand_n
     elif mode == 'search':
-        if not FLAGS.randaug: #MODAL search
+        if FLAGS.randaug:
+            #RandAug search
+            hparams['use_modals'] = False
+            hparams['rand_m'] = FLAGS.rand_m
+            hparams['rand_n'] = FLAGS.rand_n
+        elif 'search' in FLAGS.fix_policy:
+            hparams['use_modals'] = False
+            hparams['rand_m'] = FLAGS.rand_m
+            hparams['rand_n'] = 1
+        else: #MODAL search
             hparams['use_modals'] = True
             hparams['policy_path'] = None
             # default start value of 0
             hparams['hp_policy'] = [0 for _ in range(4 * NUM_HP_TRANSFORM)]
-        else: #RandAug search
-            hparams['use_modals'] = False
-            hparams['rand_m'] = FLAGS.rand_m
-            hparams['rand_n'] = FLAGS.rand_n
+
         hparams['ray_name']  = FLAGS.ray_name
 
     else:

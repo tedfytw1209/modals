@@ -52,12 +52,35 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         self.trainer.reset_config(self.config)
         return True
     
+def explore(config):
+        """Custom explore function.
+    Args:
+      config: dictionary containing ray config params.
+    Returns:
+      Copy of config with modified augmentation policy.
+    """
+        new_params = []
+        for i, param in enumerate(config["hp_policy"]):
+            if random.random() < 0.2:
+                new_params.append(random.randint(0, 10))
+            else:
+                amt = np.random.choice(
+                    [0, 1, 2, 3], p=[0.25, 0.25, 0.25, 0.25])
+                amt = int(amt)
+                if random.random() < 0.5:
+                    new_params.append(max(0, param - amt))
+                else:
+                    new_params.append(min(10, param + amt))
+        config["hp_policy"] = new_params
+        return config
 
 def search():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
     if FLAGS.randaug:
         method = 'RandAug'
+    elif 'search' in FLAGS.fix_policy:
+        method = 'Transfrom'
     else:
         method = 'MODAL'
     #wandb
@@ -83,28 +106,6 @@ def search():
 
     # if FLAGS.restore:
     #     train_spec["restore"] = FLAGS.restore
-
-    def explore(config):
-        """Custom explore function.
-    Args:
-      config: dictionary containing ray config params.
-    Returns:
-      Copy of config with modified augmentation policy.
-    """
-        new_params = []
-        for i, param in enumerate(config["hp_policy"]):
-            if random.random() < 0.2:
-                new_params.append(random.randint(0, 10))
-            else:
-                amt = np.random.choice(
-                    [0, 1, 2, 3], p=[0.25, 0.25, 0.25, 0.25])
-                amt = int(amt)
-                if random.random() < 0.5:
-                    new_params.append(max(0, param - amt))
-                else:
-                    new_params.append(min(10, param + amt))
-        config["hp_policy"] = new_params
-        return config
 
     ray.init()
     if hparams['use_modals']: #MODALS search
@@ -132,12 +133,37 @@ def search():
         print('pbt result:')
         print(pbt.config)  # Initial config
         print(pbt._policy)  # Schedule, in the form of tuples (step, config)
-    else: #randaug search tune.grid_search from rand_m*rand_n
+    elif FLAGS.randaug: #randaug search tune.grid_search from rand_m*rand_n
         total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
         print(f'RandAugment grid search for {total_grid} samples')
         hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         hparams['rand_n'] = tune.grid_search(hparams['rand_n'])
         #tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
+        #    reduction_factor=3,brackets=1)
+        '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
+            reduction_factor=3,brackets=1)'''
+        tune_scheduler = None
+        analysis = tune.run(
+            RayModel,
+            name=hparams['ray_name'],
+            scheduler=tune_scheduler,
+            #reuse_actors=True,
+            verbose=True,
+            metric="valid_acc",
+            mode='max',
+            checkpoint_score_attr="valid_acc",
+            #checkpoint_freq=FLAGS.checkpoint_freq,
+            resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
+            stop={"training_iteration": hparams['num_epochs']},
+            config=hparams,
+            local_dir=FLAGS.ray_dir,
+            num_samples=1, #grid search no need
+            )
+    elif 'search' in FLAGS.fix_policy: #test over all transfroms
+        total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
+        print(f'Transfrom grid search for {total_grid} samples')
+        hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+        
         #    reduction_factor=3,brackets=1)
         '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
             reduction_factor=3,brackets=1)'''
