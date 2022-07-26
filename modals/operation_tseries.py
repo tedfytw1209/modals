@@ -563,8 +563,8 @@ def RR_permutation(X, magnitude,sfreq=100, random_state=None, *args, **kwargs): 
     From 'Nita, Sihem, et al. 
     "A new data augmentation convolutional neural network for human emotion recognition based on ECG signals."
     Biomedical Signal Processing and Control 75 (2022): 103580.'
+    Using https://github.com/berndporr/py-ecg-detectors module for detection
     """
-    #biosppy.signals.ecg.ecg
     x = X.detach().cpu().numpy()
     num_sample, num_leads, num_len = x.shape
     detectors = Detectors(sfreq) #need input ecg: (seq_len)
@@ -684,43 +684,43 @@ class ToTensor:
         return torch.tensor(img).float()
 
 class RandAugment:
-    def __init__(self, n, m):
+    def __init__(self, n, m, rd_seed=None):
         self.n = n
         self.m = m      # [0, 1]
         self.augment_list = TS_AUGMENT_LIST
-
-    def __call__(self, img, rd_seed=None):
+        self.rng = check_random_state(rd_seed)
+    def __call__(self, img):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
-        ops = random.choices(self.augment_list, k=self.n)
+        ops = self.rng.choices(self.augment_list, k=self.n)
         for op, minval, maxval in ops:
             val = float(self.m) * float(maxval - minval) + minval
             #print(val)
-            img = op(img, val,random_state=rd_seed)
+            img = op(img, val,random_state=self.rng)
 
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 class TransfromAugment:
-    def __init__(self, names,m ,p=0.5,n=1):
+    def __init__(self, names,m ,p=0.5,n=1, rd_seed=None):
         print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
         self.m = m      # [0, 1]
         self.n = n
         self.names = names
-
-    def __call__(self, img, rd_seed=None):
+        self.rng = check_random_state(rd_seed)
+    def __call__(self, img):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
-        select_names = random.choices(self.names, k=self.n)
+        select_names = self.rng.choices(self.names, k=self.n)
         for name in select_names:
             augment = get_augment(name)
-            use_op = random.random() < self.p
+            use_op = self.rng.random() < self.p
             if use_op:
                 op, minval, maxval = augment
                 val = float(self.m) * float(maxval - minval) + minval
-                img = op(img, val,random_state=rd_seed)
+                img = op(img, val,random_state=self.rng)
             else: #pass
                 pass
 
