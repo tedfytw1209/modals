@@ -5,6 +5,7 @@ import ray
 import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
+from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
@@ -160,13 +161,15 @@ def search():
             num_samples=1, #grid search no need
             )
     elif 'search' in FLAGS.fix_policy: #test over all transfroms
-        total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
+        if 'mag' in FLAGS.fix_policy:
+            hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
+            hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+        else:
+            hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
+            hparams['rand_m'] = 0.5
+        total_grid = len(hparams['rand_m']) * len(hparams['fix_policy'])
         print(f'Transfrom grid search for {total_grid} samples')
-        hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         
-        #    reduction_factor=3,brackets=1)
-        '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
-            reduction_factor=3,brackets=1)'''
         tune_scheduler = None
         analysis = tune.run(
             RayModel,

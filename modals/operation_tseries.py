@@ -823,6 +823,28 @@ TS_ADD_LIST = [
     (Magnitude_Warp, 0, 1),  # 5
     (Window_Warp, 0, 1),  # 6
 ]
+MAG_TEST_NAMES = [
+    'fft_surrogate',
+    'channel_dropout',
+    'channel_shuffle',
+    'random_time_mask',
+    'add_gaussian_noise',
+    'random_bandstop',
+    'freq_shift',
+    'Window_Slicing',
+    'TS_Permutation',
+    'Time_Warp',
+    'Scaling',
+    'Magnitude_Warp',
+    'Window_Warp',
+]
+NOMAG_TEST_NAMES = [
+    'time_reverse', #time reverse
+    'sign_flip',
+    'RR_permutation',
+    'QRS_resample',
+    'Window_Slicing_Circle',
+]
 
 def get_augment(name):
     augment_dict = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST}
