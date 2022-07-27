@@ -49,6 +49,7 @@ def create_parser(mode):
     parser.add_argument('--alpha', type=float, default=1.0, help='mixup parameter')
     parser.add_argument('--manifold_mixup', action='store_true', help='manifold mixup benchmark')
     parser.add_argument('--randaug', action='store_true', help='RandAugment benchmark')
+    parser.add_argument('--augselect', type=str, default='', help='RandAugment select data augment')
     parser.add_argument('--fix_policy', type=str, default=None, help='either a comma separated list of values')
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
@@ -116,6 +117,7 @@ def create_hparams(mode, FLAGS):
         'default_split': FLAGS.default_split,
         'labelgroup': FLAGS.labelgroup,
         'randaug': FLAGS.randaug,
+        'augselect': FLAGS.augselect,
         'fix_policy': FLAGS.fix_policy,
         }
 

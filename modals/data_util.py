@@ -123,7 +123,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         print('Using RandAugment')
         train_transfrom.extend([
             ToTensor(),
-            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed)])
+            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed,augselect=randaug_dic['augselect'])])
     if len(fix_policy_list)>0:
         
         train_transfrom.extend([

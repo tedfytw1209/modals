@@ -164,10 +164,12 @@ def search():
         if 'mag' in FLAGS.fix_policy:
             hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+            len_m = len(hparams['rand_m'])
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
             hparams['rand_m'] = 0.5
-        total_grid = len(hparams['rand_m']) * len(hparams['fix_policy'])
+            len_m = 1
+        total_grid = len_m * len(hparams['fix_policy'])
         print(f'Transfrom grid search for {total_grid} samples')
         
         tune_scheduler = None

@@ -477,7 +477,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.name = name
         self.multilabel = hparams['multilabel']
         self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
-            'rand_m':hparams.get('rand_m',0)}
+            'rand_m':hparams.get('rand_m',0),'augselect':hparams.get('augselect','')}
         print('Rand Augment: ',self.randaug_dic)
         fix_policy = hparams['fix_policy']
         if fix_policy==None:

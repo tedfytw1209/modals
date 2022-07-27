@@ -614,10 +614,16 @@ class ToTensor:
         return torch.tensor(img).float()
 
 class RandAugment:
-    def __init__(self, n, m, rd_seed=None):
+    def __init__(self, n, m, rd_seed=None,augselect=''):
         self.n = n
         self.m = m      # [0, 1]
         self.augment_list = TS_AUGMENT_LIST
+        if 'tsadd' in augselect:
+            print('Augmentation add TS_ADD_LIST')
+            self.augment_list += TS_ADD_LIST
+        if 'ecg' in augselect:
+            print('Augmentation add ECG_AUGMENT_LIST')
+            self.augment_list += ECG_AUGMENT_LIST
         self.augment_ids = [i for i in range(len(self.augment_list))]
         self.rng = check_random_state(rd_seed)
     def __call__(self, img):
