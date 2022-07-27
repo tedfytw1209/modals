@@ -102,7 +102,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
-        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[]):
+        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],rd_seed=None):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -123,12 +123,12 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         print('Using RandAugment')
         train_transfrom.extend([
             ToTensor(),
-            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'])])
+            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed)])
     if len(fix_policy_list)>0:
         
         train_transfrom.extend([
             ToTensor(),
-            TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'])
+            TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'],rd_seed=rd_seed)
             ])
     
     #split

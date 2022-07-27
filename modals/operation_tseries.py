@@ -645,7 +645,7 @@ class TransfromAugment:
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
-        select_names = self.rng.choices(self.names, k=self.n)
+        select_names = self.rng.choice(self.names, size=self.n)
         for name in select_names:
             augment = get_augment(name)
             use_op = self.rng.random() < self.p
