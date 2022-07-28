@@ -80,10 +80,13 @@ def search():
     hparams = create_hparams('search', FLAGS)
     if FLAGS.randaug:
         method = 'RandAug'
+        proj = 'RandAugment'
     elif 'search' in FLAGS.fix_policy:
         method = 'Transfrom'
+        proj = 'RandAugment'
     else:
         method = 'MODAL'
+        proj = 'MODAL'
     #wandb
     experiment_name = f'{now_str}_{method}_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
     '''run_log = wandb.init(config=FLAGS, 
@@ -94,7 +97,7 @@ def search():
                   reinit=True)'''
     wandb_config = {
         #'config':FLAGS, 
-        'project':'MODAL',
+        'project':proj,
         'group':experiment_name,
         #'name':experiment_name,
         'dir':'./',

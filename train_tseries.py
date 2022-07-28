@@ -12,19 +12,28 @@ def main(FLAGS, hparams):
     #wandb
     if FLAGS.use_modals:
         Aug_type = 'MODAL'
+        proj = 'MODAL'
     elif FLAGS.mixup:
         Aug_type = 'MIXUP'
+        proj = 'MIXUP'
     elif FLAGS.manifold_mixup:
         Aug_type = 'MANIFOLDMIXUP'
+        proj = 'MIXUP'
     elif FLAGS.randaug:
         Aug_type = f'RANDAUG_{FLAGS.rand_m}_{FLAGS.rand_n}'
+        proj = 'RandAugment'
     elif FLAGS.fix_policy!=None:
         Aug_type = FLAGS.fix_policy
+        proj = 'RandAugment'
     else:
         Aug_type = 'NOAUG'
+        if FLAGS.metric_learning:
+            proj = 'MODAL'
+        else:
+            proj = 'RandAugment'
     experiment_name = f'{Aug_type}_train_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}'
     run_log = wandb.init(config=FLAGS, 
-                  project='MODAL',
+                  project=proj,
                   group=experiment_name,
                   name=f'{now_str}_' + experiment_name,
                   dir='./',
