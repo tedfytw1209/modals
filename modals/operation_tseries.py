@@ -195,7 +195,7 @@ def _mask_time(X, mask_start_per_sample, mask_len_samples):
     all_mask_len_samples = int(seq_len * mask_len_samples / 100.0)
     mask = torch.ones_like(X)
     for i, start in enumerate(mask_start_per_sample):
-        mask[i, :, start:start + all_mask_len_samples] = 0 #every channel
+        mask[i, :, int(start):int(start) + all_mask_len_samples] = 0 #every channel
     return X * mask
 def _relaxed_mask_time(X, mask_start_per_sample, mask_len_samples):
     batch_size, n_channels, seq_len = X.shape

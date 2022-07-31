@@ -455,7 +455,11 @@ class TextModelTrainer(object):
         # path = os.path.join(ckpt_dir, self.model_name)
         # map_location='cuda:0')
         checkpoint = torch.load(ckpt, map_location=torch.device('cpu'))
-        self.net.load_state_dict(checkpoint['state'])
+        print('Model keys: ',[n for n in checkpoint.keys()])
+        if '.pth' in ckpt:
+            self.net.load_state_dict(checkpoint['model'])
+        else:
+            self.net.load_state_dict(checkpoint['state'])
         self.loss_dict = checkpoint['loss']
         if self.hparams['mode'] != 'test':
             self.optimizer.load_state_dict(checkpoint['optimizer'])

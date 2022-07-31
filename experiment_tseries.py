@@ -143,6 +143,7 @@ def search():
     hparams['wandb'] = wandb_config
     #for restore
     if FLAGS.restore:
+        print('Using restore: ',FLAGS.restore)
         hparams["restore"] = FLAGS.restore
 
     ray.init()
@@ -179,8 +180,9 @@ def search():
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
             len_m = len(hparams['rand_m'])
         elif 'exp' in FLAGS.fix_policy:
+            hparams['mode'] = 'test' #change mode to test
             hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
-            hparams['rand_m'] = hparams['rand_m'] #just for first m
+            hparams['rand_m'] = hparams['rand_m'][0] #just for first m
             hparams['num_repeat'] = FLAGS.num_repeat
             hparams['num_m'] = FLAGS.num_m
             num_repeat = hparams['num_repeat']
@@ -193,6 +195,7 @@ def search():
             hparams['rand_m'] = 0.5
             len_m = 1
         total_grid = len_m * len(hparams['fix_policy'])
+        print('Using policy ',hparams['fix_policy'])
         print(f'Transfrom grid search for {total_grid} samples')
         
         tune_scheduler = None
