@@ -30,6 +30,7 @@ from modals.custom_ops import (HardestNegativeTripletSelector,
                                SemihardNegativeTripletSelector)
 from modals.losses import (OnlineTripletLoss, adverserial_loss,
                            discriminator_loss)
+from modals.operation_tseries import ToTensor,TransfromAugment
 import wandb
 
 def count_parameters(model):
@@ -477,7 +478,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.name = name
         self.multilabel = hparams['multilabel']
         self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
-            'rand_m':hparams.get('rand_m',0),'augselect':hparams.get('augselect','')}
+            'rand_m':hparams.get('rand_m',0),'augselect':hparams.get('augselect',''),'aug_p':hparams.get('aug_p',0.5)}
         print('Rand Augment: ',self.randaug_dic)
         fix_policy = hparams['fix_policy']
         if fix_policy==None:
@@ -486,6 +487,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             fix_policy = fix_policy.split(',')
         else:
             fix_policy = [fix_policy]
+        self.fix_policy = fix_policy
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
@@ -727,7 +729,6 @@ class TSeriesModelTrainer(TextModelTrainer):
             data_loader = self.valid_loader
         else:
             data_loader = self.test_loader
-
         confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
         preds = []
         targets = []
@@ -801,3 +802,14 @@ class TSeriesModelTrainer(TextModelTrainer):
             val_acc = 0.0
 
         return train_acc, val_acc, train_dic
+    #change augment
+    def change_augment(self,new_m):
+        #not good code !!!
+        print('Setting new augment m to ', new_m)
+        new_augment = [
+            ToTensor(),
+            TransfromAugment(self.fix_policy,new_m,n=self.hparams['rand_n'],p=self.hparams['aug_p'])
+            ]
+        self.train_loader.dataset.augmentations = new_augment
+        self.valid_loader.dataset.augmentations = new_augment
+        self.test_loader.dataset.augmentations = new_augment

@@ -5,7 +5,7 @@ import ray
 import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
-from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES
+from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES,EXP_TEST_NAMES
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
@@ -25,12 +25,15 @@ def dict_avg(result_dic):
     output_dict = {}
     for k in result_dic.keys():
         output = np.array(result_dic[k])
-
+        output_dict[f'{k}_avg'] = np.mean(output)
+        output_dict[f'{k}_std'] = np.std(output)
+    return output_dict
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_train_dic,self.result_valid_dic, self.result_test_dic = {}, {}, {}
+        self.tmp_randm = self.config['rand_m'] #mag start at rand_m
         if self.config.get('restore',False):
             self._restore(self.config['restore'])
 
@@ -48,13 +51,23 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         dict_append(self.result_test_dic,info_dict_test)
         
         #if last epoch
-        if self._iteration==self.config['num_epochs']-1:
-            step_dic = {}
+        if self._iteration%self.config['num_repeat'] == self.config['num_repeat']-1:
+            step_dic = {'m':self.tmp_randm}
             #average and var
-
-            step_dic.update(self.result_valid_dic)
-            step_dic.update(self.result_test_dic)
+            result_train = dict_avg(self.result_train_dic)
+            result_valid = dict_avg(self.result_valid_dic)
+            result_test = dict_avg(self.result_test_dic)
+            step_dic.update(result_train)
+            step_dic.update(result_valid)
+            step_dic.update(result_test)
             wandb.log(step_dic)
+            #clear
+            self.result_train_dic={}
+            self.result_test_dic={}
+            self.result_valid_dic={}
+            #reset data augment
+            self.tmp_randm = min(self.tmp_randm + 1.0 / self.config['num_m'] , 1.0)
+            self.trainer.change_augment(self.tmp_randm)
         call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
         return call_back_dic
 
@@ -125,9 +138,10 @@ def search():
         'reinit':False,
         'api_key':API_KEY
     }
+    #for wandb
     hparams["log_config"]= True
     hparams['wandb'] = wandb_config
-
+    #for restore
     if FLAGS.restore:
         hparams["restore"] = FLAGS.restore
 
@@ -159,10 +173,21 @@ def search():
             num_samples=1, #grid search no need
             )
     elif 'search' in FLAGS.fix_policy: #test over all transfroms
+        total_epoch = hparams['num_epochs']
         if 'mag' in FLAGS.fix_policy:
             hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
             len_m = len(hparams['rand_m'])
+        elif 'exp' in FLAGS.fix_policy:
+            hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
+            hparams['rand_m'] = hparams['rand_m'] #just for first m
+            hparams['num_repeat'] = FLAGS.num_repeat
+            hparams['num_m'] = FLAGS.num_m
+            num_repeat = hparams['num_repeat']
+            num_m = hparams['num_m']
+            total_epoch = hparams['num_repeat'] * hparams['num_m']
+            print(f'Each experiment search for {num_m} magnitudes and {num_repeat} samples')
+            len_m = 1
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
             hparams['rand_m'] = 0.5
@@ -182,7 +207,7 @@ def search():
             checkpoint_score_attr="valid_acc",
             #checkpoint_freq=FLAGS.checkpoint_freq,
             resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
-            stop={"training_iteration": hparams['num_epochs']},
+            stop={"training_iteration": total_epoch},
             config=hparams,
             local_dir=FLAGS.ray_dir,
             num_samples=1, #grid search no need

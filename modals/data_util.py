@@ -102,7 +102,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
-        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],rd_seed=None):
+        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],rd_seed=None, test_augment=False):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -128,8 +128,15 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         
         train_transfrom.extend([
             ToTensor(),
-            TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'],rd_seed=rd_seed)
+            TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'],rd_seed=rd_seed,p=randaug_dic['aug_p'])
             ])
+    if test_augment:
+        print('Using valid/test transfrom, just for experiment')
+        valid_transfrom = train_transfrom
+        test_transfrom = train_transfrom
+    else:
+        valid_transfrom = []
+        test_transfrom = []
     
     #split
     if not default_split or dataset_name=='chapman': #chapman didn't have default split now!!!
@@ -155,8 +162,8 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             train = Subset(dataset,sub_tr_idx)
         else:
             train = dataset_func(dataroot,mode='train',multilabel=multilabel,augmentations=train_transfrom,**kwargs)
-            valid = dataset_func(dataroot,mode='valid',multilabel=multilabel,**kwargs)
-            test = dataset_func(dataroot,mode='test',multilabel=multilabel,**kwargs)
+            valid = dataset_func(dataroot,mode='valid',multilabel=multilabel,augmentations=valid_transfrom,**kwargs)
+            test = dataset_func(dataroot,mode='test',multilabel=multilabel,augmentations=test_transfrom,**kwargs)
             dataset = train
     classes = [i for i in range(dataset.num_class)]
     input_channel = dataset.channel

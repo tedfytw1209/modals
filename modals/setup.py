@@ -51,6 +51,7 @@ def create_parser(mode):
     parser.add_argument('--randaug', action='store_true', help='RandAugment benchmark')
     parser.add_argument('--augselect', type=str, default='', help='RandAugment select data augment')
     parser.add_argument('--fix_policy', type=str, default=None, help='either a comma separated list of values')
+    parser.add_argument('--aug_p',type=float, default=0.5, help='p for transfrom')
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
@@ -70,7 +71,8 @@ def create_parser(mode):
         parser.add_argument('--ray_replay', type=str, default='', help='ray replay pbt')
         parser.add_argument('--rand_m',type=float, nargs='+', default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
         parser.add_argument('--rand_n',type=int, nargs='+', default=1, help='RandAugment parameter n: Number of augmentation transformations')
-        
+        parser.add_argument('--num_repeat',type=int, default=10, help='')
+        parser.add_argument('--num_m',type=int, default=20, help='')
     else:
         raise ValueError('unknown state')
 
@@ -119,6 +121,7 @@ def create_hparams(mode, FLAGS):
         'randaug': FLAGS.randaug,
         'augselect': FLAGS.augselect,
         'fix_policy': FLAGS.fix_policy,
+        'aug_p': FLAGS.aug_p,
         }
 
     if FLAGS.enforce_prior:
