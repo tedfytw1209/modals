@@ -15,27 +15,46 @@ now_str = time.strftime("%Y%m%d-%H%M%S")
 
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
+def dict_append(result_dic,info_dict):
+    for k in info_dict.keys():
+        if result_dic.get(k,None)==None:
+            result_dic[k] = [info_dict[k]]
+        else:
+            result_dic[k].append(info_dict[k])
+def dict_avg(result_dic):
+    output_dict = {}
+    for k in result_dic.keys():
+        output = np.array(result_dic[k])
+
+
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
-        self.result_valid_dic, self.result_test_dic = {}, {}
+        self.result_train_dic,self.result_valid_dic, self.result_test_dic = {}, {}, {}
+        if self.config.get('restore',False):
+            self._restore(self.config['restore'])
 
     def step(self):#use step replace _train
         if self._iteration==0:
             wandb.config.update(self.config)
         print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
-        step_dic = {f'epoch':self._iteration}
-        train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
+        #step_dic = {f'epoch':self._iteration}
+        #train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
+        train_acc, train_loss, info_dict_train = self.trainer._test(self._iteration, self.trial_id, mode='train')
+        valid_acc, valid_loss, info_dict_valid = self.trainer._test(self._iteration, self.trial_id, mode='valid')
         test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
-        self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
-        self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
-        step_dic.update(info_dict)
-        step_dic.update(info_dict_test)
+        dict_append(self.result_train_dic,info_dict_train)
+        dict_append(self.result_valid_dic,info_dict_valid)
+        dict_append(self.result_test_dic,info_dict_test)
+        
         #if last epoch
         if self._iteration==self.config['num_epochs']-1:
+            step_dic = {}
+            #average and var
+
             step_dic.update(self.result_valid_dic)
             step_dic.update(self.result_test_dic)
-        wandb.log(step_dic)
+            wandb.log(step_dic)
         call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
         return call_back_dic
 
@@ -109,8 +128,8 @@ def search():
     hparams["log_config"]= True
     hparams['wandb'] = wandb_config
 
-    # if FLAGS.restore:
-    #     train_spec["restore"] = FLAGS.restore
+    if FLAGS.restore:
+        hparams["restore"] = FLAGS.restore
 
     ray.init()
     if FLAGS.randaug: #randaug search tune.grid_search from rand_m*rand_n

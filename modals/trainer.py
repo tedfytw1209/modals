@@ -721,7 +721,13 @@ class TSeriesModelTrainer(TextModelTrainer):
         correct = 0
         total = 0
         test_loss = 0.0
-        data_loader = self.valid_loader if mode == 'valid' else self.test_loader
+        if mode == 'train':
+            data_loader = self.train_loader
+        elif mode == 'valid':
+            data_loader = self.valid_loader
+        else:
+            data_loader = self.test_loader
+
         confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
         preds = []
         targets = []
