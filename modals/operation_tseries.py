@@ -395,7 +395,7 @@ def QRS_resample(X, magnitude,sfreq=100, random_state=None, *args, **kwargs):
 #WW, WS
 def window_slice(x,rng, reduce_ratio=0.9): #ref (batch, time_steps, channel)
     # https://halshs.archives-ouvertes.fr/halshs-01357973/document
-    target_len = np.ceil(reduce_ratio*x.shape[1]).astype(int)
+    target_len = max(np.ceil(reduce_ratio*x.shape[1]).astype(int),1)
     if target_len >= x.shape[1]:
         return x
     starts = rng.randint(low=0, high=x.shape[1]-target_len, size=(x.shape[0])).astype(int)
@@ -520,12 +520,12 @@ T. T. Um et al, "Data augmentation of wearable sensor data for parkinson’s dis
 def window_warp(x,rng, window_ratio=0.1, scales=[0.5, 2.]): #ref (batch, time_steps, channel)
     # https://halshs.archives-ouvertes.fr/halshs-01357973/document
     warp_scales = rng.choice(scales, x.shape[0])
-    warp_size = np.ceil(window_ratio*x.shape[1]).astype(int)
+    warp_size = min(np.ceil(window_ratio*x.shape[1]).astype(int),x.shape[1]-1)
     if warp_size<=1:
         return x
     window_steps = np.arange(warp_size)
         
-    window_starts = rng.randint(low=1, high=x.shape[1]-warp_size-1, size=(x.shape[0])).astype(int)
+    window_starts = rng.randint(low=1, high=max(x.shape[1]-warp_size-1,2), size=(x.shape[0])).astype(int)
     window_ends = (window_starts + warp_size).astype(int)
             
     ret = np.zeros_like(x)
@@ -631,13 +631,14 @@ EXP_TEST_NAMES =[
     'exp_bandstop',
     'exp_freq_shift',
 ]
-
+AUGMENT_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST}
 def get_augment(name):
-    augment_dict = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST}
-    return augment_dict[name]
+    return AUGMENT_DICT[name]
 
 def apply_augment(img, name, level, rd_seed=None):
     augment_fn, low, high = get_augment(name)
+    assert 0 <= level
+    assert level <= 1
     #change tseries signal from (len,channel) to (batch,channel,len)
     #print('Device: ',img.device)
     seq_len , channel = img.shape
