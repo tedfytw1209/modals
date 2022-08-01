@@ -242,14 +242,14 @@ def random_bandstop(X, bandwidth, max_freq=50, sfreq=100, random_state=None, *ar
         ))
     return transformed_X
 
-def exp_bandstop(X, bandwidth, max_freq=300, sfreq=100, random_state=None, *args, #300 is 2 * max ecg
+def exp_bandstop(X, bandwidth, max_freq=50, sfreq=100, random_state=None, *args, #300 is 2 * max ecg
                     **kwargs):
     rng = check_random_state(random_state)
     transformed_X = X.clone()
     # Prevents transitions from going below 0 and above max_freq
     notched_freqs = rng.uniform(
-        low=1 + 2 * bandwidth,
-        high=max_freq - 1 - 2 * bandwidth,
+        low=1 + bandwidth/2,
+        high=max_freq - 1 - bandwidth/2,
         size=X.shape[0]
     )
     # I just worry that this might be to complex for gradient descent and
@@ -623,8 +623,8 @@ NOMAG_TEST_NAMES = [
 ]
 TS_EXP_LIST = [
     (exp_time_mask, 0, 100),
-    (exp_bandstop, 0, 150), #150 is max ecg freq range
-    (exp_freq_shift, 0, 150), #150 is max ecg freq range
+    (exp_bandstop, 0, 48), #sample freq=100, bandstop=48 because of notch
+    (exp_freq_shift, 0, 10), #sample freq=100
 ]
 EXP_TEST_NAMES =[
     'exp_time_mask',

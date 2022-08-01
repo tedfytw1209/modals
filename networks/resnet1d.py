@@ -146,9 +146,6 @@ class ResNet1d(nn.Module):
         print(self.fc)
         #head = create_head1d((inplanes if fix_feature_dim else (2**len(layers)*inplanes)) * block.expansion, nc=num_classes, lin_ftrs=lin_ftrs_head, ps=ps_head, bn_final=bn_final_head, bn=bn_head, act=act_head, concat_pooling=concat_pooling)
         #layers_tmp.append(head)
-        
-        
-
     def _make_layer(self, block, planes, blocks, stride=1,kernel_size=3):
         downsample = None
         
