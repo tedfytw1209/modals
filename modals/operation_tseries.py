@@ -128,6 +128,7 @@ def fft_surrogate(X, magnitude, random_state, *args, **kwargs):
     )
     return transformed_X
 
+
 def _pick_channels_randomly(X, magnitude, random_state):
     rng = check_random_state(random_state)
     batch_size, n_channels, _ = X.shape
@@ -183,6 +184,7 @@ def add_gaussian_noise(X, std, random_state=None, *args, **kwargs):
 def permute_channels(X, permutation, *args, **kwargs):
     return X[..., permutation, :]
 
+
 def _sample_mask_start(X, mask_len_samples, random_state):
     rng = check_random_state(random_state)
     seq_length = torch.as_tensor(X.shape[-1], device=X.device)
@@ -191,11 +193,9 @@ def _sample_mask_start(X, mask_len_samples, random_state):
     ), device=X.device) * (seq_length - mask_len_samples)
     return mask_start
 def _mask_time(X, mask_start_per_sample, mask_len_samples):
-    seq_len = X.shape[2]
-    all_mask_len_samples = int(seq_len * mask_len_samples / 100.0)
     mask = torch.ones_like(X)
     for i, start in enumerate(mask_start_per_sample):
-        mask[i, :, int(start):int(start) + all_mask_len_samples] = 0 #every channel
+        mask[i, :, int(start):int(start) + mask_len_samples] = 0 #every channel
     return X * mask
 def _relaxed_mask_time(X, mask_start_per_sample, mask_len_samples):
     batch_size, n_channels, seq_len = X.shape
@@ -213,8 +213,10 @@ def random_time_mask(X, mask_len_samples, random_state=None, *args, **kwargs):
     return _relaxed_mask_time(X, mask_start, mask_len_samples)
 
 def exp_time_mask(X, mask_len_samples, random_state=None, *args, **kwargs):
-    mask_start = _sample_mask_start(X, mask_len_samples, random_state)
-    return _mask_time(X, mask_start, mask_len_samples)
+    seq_len = X.shape[2]
+    all_mask_len_samples = int(seq_len * mask_len_samples / 100.0)
+    mask_start = _sample_mask_start(X, all_mask_len_samples, random_state)
+    return _mask_time(X, mask_start, all_mask_len_samples)
 
 def random_bandstop(X, bandwidth, max_freq=50, sfreq=100, random_state=None, *args,
                     **kwargs):
@@ -729,10 +731,11 @@ if __name__ == '__main__':
     'wisdm' : 10,
     'chapman' : 10,
     }
-    dataset = PTBXL(dataset_path='../CWDA_research/CWDA/datasets/Datasets/ptbxl-dataset')
+    #dataset = PTBXL(dataset_path='../CWDA_research/CWDA/datasets/Datasets/ptbxl-dataset',mode='test',labelgroup='superdiagnostic',denoise=True)
+    dataset = PTBXL(dataset_path='../CWDA_research/CWDA/datasets/Datasets/ptbxl-dataset',mode='test',labelgroup='superdiagnostic')
     print(dataset[0])
     print(dataset[0][0].shape)
-    sample = dataset[50]
+    sample = dataset[100]
     x = sample[0]
     t = np.linspace(0, TimeS_dict['ptbxl'], 1000)
     label = sample[2]
@@ -740,9 +743,9 @@ if __name__ == '__main__':
     print(x.shape)
     x_tensor = torch.from_numpy(x).float()
     plot_line(t,x)
-    for name in TS_ADD_NAMES+TS_OPS_NAMES:
+    for name in EXP_TEST_NAMES:
         print('='*10,name,'='*10)
-        x_aug = apply_augment(x_tensor,name,0).numpy()
+        x_aug = apply_augment(x_tensor,name,0.98).numpy()
         print(x_aug.shape)
         plot_line(t,x_aug)
     randaug = RandAugment(1,0,rd_seed=42)
