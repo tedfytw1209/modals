@@ -30,7 +30,7 @@ from modals.custom_ops import (HardestNegativeTripletSelector,
                                SemihardNegativeTripletSelector)
 from modals.losses import (OnlineTripletLoss, adverserial_loss,
                            discriminator_loss)
-from modals.operation_tseries import ToTensor,TransfromAugment
+from modals.operation_tseries import ToTensor,TransfromAugment,TS_OPS_NAMES,TS_ADD_NAMES,ECG_OPS_NAMES
 import wandb
 
 def count_parameters(model):
@@ -487,6 +487,10 @@ class TSeriesModelTrainer(TextModelTrainer):
         fix_policy = hparams['fix_policy']
         if fix_policy==None:
             fix_policy = []
+        elif fix_policy=='ts_base':
+            fix_policy = TS_OPS_NAMES
+        elif fix_policy=='ts_add':
+            fix_policy = TS_OPS_NAMES + TS_ADD_NAMES
         elif ',' in fix_policy:
             fix_policy = fix_policy.split(',')
         else:
