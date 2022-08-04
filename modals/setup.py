@@ -57,7 +57,7 @@ def create_parser(mode):
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
         parser.add_argument('--policy_epochs', type=int, default=200, help='number of epochs/iterations policy trained for')
         parser.add_argument('--name', type=str, default='autoaug')
-        parser.add_argument('--rand_m', type=float, default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
+        parser.add_argument('--rand_m', type=float, nargs='+', default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
         parser.add_argument('--rand_n', type=int, default=1, help='RandAugment parameter n: Number of augmentation transformations')
 
     elif mode == 'search':
@@ -177,7 +177,9 @@ def create_hparams(mode, FLAGS):
 
     else:
         raise ValueError('unknown mode')
-
+    #rand_m fix
+    if isinstance(hparams['rand_m'],list) and len(hparams['rand_m'])==1:
+        hparams['rand_m'] = hparams['rand_m'][0]
     # Child model
     hparams['model_name'] = FLAGS.model_name
 

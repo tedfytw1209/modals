@@ -20,6 +20,8 @@ def main(FLAGS, hparams):
         Aug_type = 'MANIFOLDMIXUP'
         proj = 'MIXUP'
     elif FLAGS.randaug:
+        if isinstance(FLAGS.rand_m,list):
+            FLAGS.rand_m = FLAGS.rand_m[0]
         Aug_type = f'RANDAUG_{FLAGS.rand_m}_{FLAGS.rand_n}'
         proj = 'RandAugment'
     elif FLAGS.fix_policy!=None:

@@ -693,6 +693,12 @@ class TransfromAugment:
     def __init__(self, names,m ,p=0.5,n=1, rd_seed=None):
         print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
+        if isinstance(m,list):
+            self.list_m = True
+            assert len(m)==len(names)
+            self.m_dic = {name:em for (name,em) in zip(names,m)}
+        else:
+            self.m_dic = {name:m for name in names}
         self.m = m      # [0, 1]
         self.n = n
         self.names = names
@@ -707,7 +713,7 @@ class TransfromAugment:
             use_op = self.rng.random() < self.p
             if use_op:
                 op, minval, maxval = augment
-                val = float(self.m) * float(maxval - minval) + minval
+                val = float(self.m_dic[name]) * float(maxval - minval) + minval
                 img = op(img, val,random_state=self.rng)
             else: #pass
                 pass
