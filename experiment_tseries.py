@@ -182,7 +182,7 @@ def search():
         elif 'exp' in FLAGS.fix_policy:
             hparams['mode'] = 'test' #change mode to test
             hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
-            hparams['rand_m'] = hparams['rand_m'][0] #just for first m
+            hparams['rand_m'] = hparams['rand_m'] #just for first m
             hparams['num_repeat'] = FLAGS.num_repeat
             hparams['num_m'] = FLAGS.num_m
             num_repeat = hparams['num_repeat']
