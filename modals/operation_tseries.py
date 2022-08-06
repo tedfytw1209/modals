@@ -690,7 +690,7 @@ class RandAugment:
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 class TransfromAugment:
-    def __init__(self, names,m ,p=0.5,n=1, rd_seed=None):
+    def __init__(self, names,m ,p=0.5,n=1,class_wise=False, rd_seed=None):
         print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
         if isinstance(m,list):
@@ -703,7 +703,7 @@ class TransfromAugment:
         self.n = n
         self.names = names
         self.rng = check_random_state(rd_seed)
-    def __call__(self, img):
+    def __call__(self, img, label=None):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
@@ -717,7 +717,6 @@ class TransfromAugment:
                 img = op(img, val,random_state=self.rng)
             else: #pass
                 pass
-
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 if __name__ == '__main__':
