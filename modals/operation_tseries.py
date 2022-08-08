@@ -633,6 +633,7 @@ EXP_TEST_NAMES =[
     'exp_bandstop',
     'exp_freq_shift',
 ]
+
 AUGMENT_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST}
 def get_augment(name):
     return AUGMENT_DICT[name]
@@ -743,6 +744,46 @@ class TransfromAugment_classwise:
             if use_op:
                 op, minval, maxval = augment
                 val = float(mag) * float(maxval - minval) + minval
+                img = op(img, val,random_state=self.rng)
+            else: #pass
+                pass
+        return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
+
+class InfoRAugment:
+    def __init__(self, names,m ,p=0.5,n=1,mode='a',sfreq=100,
+        pw_len=0.2,qw_len=0.1,tw_len=0.4,rd_seed=None):
+        print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}, mode={mode}')
+        assert mode in ['a','p','qrs','t','n']
+        self.detectors = Detectors(sfreq) #need input ecg: (seq_len)
+        self.sfreq = sfreq
+        self.pw_len = pw_len
+        self.qw_len = qw_len
+        self.tw_len = tw_len
+        self.p = p
+        if isinstance(m,list):
+            self.list_m = True
+            assert len(m)==len(names)
+            self.m_dic = {name:em for (name,em) in zip(names,m)}
+        else:
+            self.m_dic = {name:m for name in names}
+        self.m = m      # [0, 1]
+        self.n = n
+        self.names = names
+        self.rng = check_random_state(rd_seed)
+    def __call__(self, img):
+        #print(img.shape)
+        seq_len , channel = img.shape
+        img = img.permute(1,0).view(1,channel,seq_len)
+        select_lead = 0 #!!!tmp
+        rpeaks_array = self.detectors.pan_tompkins_detector(x[0,select_lead,:])
+        
+        select_names = self.rng.choice(self.names, size=self.n)
+        for name in select_names:
+            augment = get_augment(name)
+            use_op = self.rng.random() < self.p
+            if use_op:
+                op, minval, maxval = augment
+                val = float(self.m_dic[name]) * float(maxval - minval) + minval
                 img = op(img, val,random_state=self.rng)
             else: #pass
                 pass
