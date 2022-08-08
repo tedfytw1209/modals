@@ -52,6 +52,7 @@ def create_parser(mode):
     parser.add_argument('--augselect', type=str, default='', help='RandAugment select data augment')
     parser.add_argument('--fix_policy', type=str, default=None, help='either a comma separated list of values')
     parser.add_argument('--aug_p',type=float, default=0.5, help='p for transfrom')
+    parser.add_argument('--class_wise', action='store_true', help='use class-wise transfrom')
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
@@ -122,6 +123,7 @@ def create_hparams(mode, FLAGS):
         'augselect': FLAGS.augselect,
         'fix_policy': FLAGS.fix_policy,
         'aug_p': FLAGS.aug_p,
+        'class_wise': FLAGS.class_wise #!!!class-wise search not finish yet
         }
 
     if FLAGS.enforce_prior:

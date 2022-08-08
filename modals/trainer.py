@@ -501,7 +501,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
             default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
-            fix_policy_list=fix_policy
+            fix_policy_list=fix_policy,class_wise=hparams['class_wise']
             )
         random.seed()
         self.device = torch.device(

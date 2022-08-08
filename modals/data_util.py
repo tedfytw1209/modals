@@ -11,7 +11,7 @@ from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
 from modals.datasets import PTBXL,WISDM,Chapman,EDFX
-from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment
+from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise
 
 def save_txt_dataset(dataset, path):
     if not isinstance(path, Path):
@@ -102,7 +102,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
     return train_loader, valid_loader, test_loader, classes, TEXT.vocab
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
-        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],rd_seed=None, test_augment=False):
+        multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,rd_seed=None, test_augment=False):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -119,16 +119,24 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         ValueError(f'Invalid dataset name={dataset_name}')
     #rand augment !!! have bug when not using default split
     train_transfrom = []
+    class_wise_transfrom = []
     if randaug_dic.get('randaug',False):
         print('Using RandAugment')
         train_transfrom.extend([
             ToTensor(),
             RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed,augselect=randaug_dic['augselect'])])
     if len(fix_policy_list)>0:
-        
-        train_transfrom.extend([
-            ToTensor(),
-            TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'],rd_seed=rd_seed,p=randaug_dic['aug_p'])
+        print('Using Transfrom')
+        if class_wise:
+            print('Class-Wise') #tmp fix of num_class!!!
+            class_wise_transfrom.extend([
+                ToTensor(),
+                TransfromAugment_classwise(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'],num_class=5,rd_seed=rd_seed,p=randaug_dic['aug_p'])
+            ])
+        else:
+            train_transfrom.extend([
+                ToTensor(),
+                TransfromAugment(fix_policy_list,randaug_dic['rand_m'],n=randaug_dic['rand_n'],rd_seed=rd_seed,p=randaug_dic['aug_p'])
             ])
     if test_augment:
         print('Using valid/test transfrom, just for experiment')
