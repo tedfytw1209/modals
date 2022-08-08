@@ -690,7 +690,7 @@ class RandAugment:
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 class TransfromAugment:
-    def __init__(self, names,m ,p=0.5,n=1,class_wise=False, rd_seed=None):
+    def __init__(self, names,m ,p=0.5,n=1, rd_seed=None):
         print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
         if isinstance(m,list):
@@ -703,7 +703,7 @@ class TransfromAugment:
         self.n = n
         self.names = names
         self.rng = check_random_state(rd_seed)
-    def __call__(self, img, label=None):
+    def __call__(self, img):
         #print(img.shape)
         seq_len , channel = img.shape
         img = img.permute(1,0).view(1,channel,seq_len)
@@ -714,6 +714,35 @@ class TransfromAugment:
             if use_op:
                 op, minval, maxval = augment
                 val = float(self.m_dic[name]) * float(maxval - minval) + minval
+                img = op(img, val,random_state=self.rng)
+            else: #pass
+                pass
+        return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
+
+class TransfromAugment_classwise:
+    def __init__(self, names,m ,p=0.5,n=1,num_class=None, rd_seed=None):
+        print(f'Using Class-wise Fix transfroms {names}, m={m}, n={n}, p={p}')
+        self.p = p
+        assert len(m)==len(names)
+        assert num_class==len(names)
+        self.m_dic = {class_idx:(name,em) for (class_idx,name,em) in zip(range(num_class),names,m)}
+        self.m = m      # [0, 1]
+        self.n = n
+        self.names = names
+        self.rng = check_random_state(rd_seed)
+    def __call__(self, img, label):
+        #print(img.shape)
+        seq_len , channel = img.shape
+        img = img.permute(1,0).view(1,channel,seq_len)
+        #select_names = self.rng.choice(self.names, size=self.n)
+        trans_name, mag = self.m_dic[label]
+        select_names = self.rng.choice([trans_name], size=self.n)
+        for name in select_names:
+            augment = get_augment(name)
+            use_op = self.rng.random() < self.p
+            if use_op:
+                op, minval, maxval = augment
+                val = float(mag) * float(maxval - minval) + minval
                 img = op(img, val,random_state=self.rng)
             else: #pass
                 pass
