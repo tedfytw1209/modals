@@ -678,7 +678,7 @@ INFO_TEST_NAMES =[
     'info_Window_Slicing',
 ]
 
-AUGMENT_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST}
+AUGMENT_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST+INFO_EXP_LIST}
 def get_augment(name):
     return AUGMENT_DICT[name]
 

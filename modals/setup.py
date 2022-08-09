@@ -74,6 +74,7 @@ def create_parser(mode):
         parser.add_argument('--rand_n',type=int, nargs='+', default=1, help='RandAugment parameter n: Number of augmentation transformations')
         parser.add_argument('--num_repeat',type=int, default=10, help='')
         parser.add_argument('--num_m',type=int, default=20, help='')
+        parser.add_argument('--info_region', type=str, default=None, help='either a comma separated list of values')
     else:
         raise ValueError('unknown state')
 
@@ -123,7 +124,8 @@ def create_hparams(mode, FLAGS):
         'augselect': FLAGS.augselect,
         'fix_policy': FLAGS.fix_policy,
         'aug_p': FLAGS.aug_p,
-        'class_wise': FLAGS.class_wise #!!!class-wise search not finish yet
+        'class_wise': FLAGS.class_wise, #!!!class-wise search not finish yet
+        'info_region': FLAGS.info_region
         }
 
     if FLAGS.enforce_prior:

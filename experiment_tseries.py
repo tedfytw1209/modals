@@ -5,7 +5,7 @@ import ray
 import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
-from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES,EXP_TEST_NAMES
+from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES,EXP_TEST_NAMES,INFO_TEST_NAMES
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
@@ -189,6 +189,25 @@ def search():
             num_m = hparams['num_m']
             total_epoch = hparams['num_repeat'] * hparams['num_m']
             print(f'Each experiment search for {num_m} magnitudes and {num_repeat} samples')
+            len_m = 1
+        elif 'inforeg' in FLAGS.fix_policy:
+            hparams['mode'] = 'test' #change mode to test
+            hparams['fix_policy'] = tune.grid_search(INFO_TEST_NAMES)
+            assert hparams['info_region']!=None
+            if ',' in hparams['info_region']:
+                hparams['info_region'] = hparams['info_region'].split(',')
+            else:
+                hparams['info_region'] = [hparams['info_region']]
+            region_len = len(hparams['info_region'])
+            hparams['info_region'] = tune.grid_search(hparams['info_region'])
+            hparams['rand_m'] = hparams['rand_m'] #just for first m
+            hparams['num_repeat'] = FLAGS.num_repeat
+            hparams['num_m'] = FLAGS.num_m
+            num_repeat = hparams['num_repeat']
+            num_m = hparams['num_m']
+            total_epoch = hparams['num_repeat'] * hparams['num_m']
+            print('Region ', hparams['info_region'])
+            print(f'Each experiment search for {region_len} regions {num_m} magnitudes and {num_repeat} samples')
             len_m = 1
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
