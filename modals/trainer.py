@@ -496,12 +496,13 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             fix_policy = [fix_policy]
         self.fix_policy = fix_policy
+        self.info_region = hparams['info_region']
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
             default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
-            fix_policy_list=fix_policy,class_wise=hparams['class_wise']
+            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=hparams['info_region']
             )
         random.seed()
         self.device = torch.device(
