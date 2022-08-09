@@ -211,11 +211,26 @@ def _relaxed_mask_time(X, mask_start_per_sample, mask_len_samples):
 def random_time_mask(X, mask_len_samples, random_state=None, *args, **kwargs):
     mask_start = _sample_mask_start(X, mask_len_samples, random_state)
     return _relaxed_mask_time(X, mask_start, mask_len_samples)
-
 def exp_time_mask(X, mask_len_samples, random_state=None, *args, **kwargs):
     seq_len = X.shape[2]
     all_mask_len_samples = int(seq_len * mask_len_samples / 100.0)
     mask_start = _sample_mask_start(X, all_mask_len_samples, random_state)
+    return _mask_time(X, mask_start, all_mask_len_samples)
+def _sample_mask_start_info(X, mask_len_samples,start,end, random_state):
+    rng = check_random_state(random_state)
+    seq_length = X.shape[-1]
+    c_start = max(min(start,end-mask_len_samples),0)
+    c_end = min(max(end,c_start+mask_len_samples),seq_length-mask_len_samples)
+    mask_start = torch.as_tensor(rng.randint(
+        low=c_start, high=c_end, size=X.shape[0],
+    ), device=X.device)
+    return mask_start
+def info_time_mask(X, mask_len_samples,start,end,
+        random_state=None, *args, **kwargs):
+    seq_len = X.shape[2]
+    all_mask_len_samples = int(seq_len * mask_len_samples / 100.0)
+    #calculate start/end
+    mask_start = _sample_mask_start_info(X, all_mask_len_samples,start,end, random_state)
     return _mask_time(X, mask_start, all_mask_len_samples)
 
 def random_bandstop(X, bandwidth, max_freq=50, sfreq=100, random_state=None, *args,
@@ -395,12 +410,16 @@ def QRS_resample(X, magnitude,sfreq=100, random_state=None, *args, **kwargs):
 '''
 #Window Slicing: tseries signal (batch,channel,len)
 #WW, WS
-def window_slice(x,rng, reduce_ratio=0.9): #ref (batch, time_steps, channel)
+def window_slice(x,rng, reduce_ratio=0.9,start=0,end=None): #ref (batch, time_steps, channel)
     # https://halshs.archives-ouvertes.fr/halshs-01357973/document
     target_len = max(np.ceil(reduce_ratio*x.shape[1]).astype(int),1)
     if target_len >= x.shape[1]:
         return x
-    starts = rng.randint(low=0, high=x.shape[1]-target_len, size=(x.shape[0])).astype(int)
+    if end==None:
+        end = x.shape[1]-target_len
+    else:
+        end = end - target_len
+    starts = rng.randint(low=start, high=max(end,start+1), size=(x.shape[0])).astype(int)
     ends = (target_len + starts).astype(int)
     
     ret = np.zeros_like(x)
@@ -412,6 +431,12 @@ def Window_Slicing(X, magnitude, random_state=None, *args, **kwargs):
     rng = check_random_state(random_state)
     x = X.permute(0,2,1).detach().cpu().numpy()
     new_x = window_slice(x,rng,1. - magnitude)
+    new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
+    return new_x
+def info_Window_Slicing(X, magnitude,start,end, random_state=None, *args, **kwargs):
+    rng = check_random_state(random_state)
+    x = X.permute(0,2,1).detach().cpu().numpy()
+    new_x = window_slice(x,rng,1. - magnitude,start=start,end=end)
     new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
     return new_x
 
@@ -519,15 +544,18 @@ Common Time Series Augmentation from
 T. T. Um et al, "Data augmentation of wearable sensor data for parkinson’s disease monitoring using convolutional neural networks," in ACM ICMI, pp. 216-220, 2017.
 '''
 
-def window_warp(x,rng, window_ratio=0.1, scales=[0.5, 2.]): #ref (batch, time_steps, channel)
+def window_warp(x,rng, window_ratio=0.1, scales=[0.5, 2.],start=0,end=None): #ref (batch, time_steps, channel)
     # https://halshs.archives-ouvertes.fr/halshs-01357973/document
     warp_scales = rng.choice(scales, x.shape[0])
     warp_size = min(np.ceil(window_ratio*x.shape[1]).astype(int),x.shape[1]-1)
     if warp_size<=1:
         return x
     window_steps = np.arange(warp_size)
-        
-    window_starts = rng.randint(low=1, high=max(x.shape[1]-warp_size-1,2), size=(x.shape[0])).astype(int)
+    if end==None:
+        end = x.shape[1]-warp_size-1
+    else:
+        end = end - warp_size - 1
+    window_starts = rng.randint(low=start+1, high=max(end,2), size=(x.shape[0])).astype(int)
     window_ends = (window_starts + warp_size).astype(int)
             
     ret = np.zeros_like(x)
@@ -543,6 +571,12 @@ def Window_Warp(X, magnitude, random_state=None, *args, **kwargs):
     rng = check_random_state(random_state)
     x = X.permute(0,2,1).detach().cpu().numpy()
     new_x = window_warp(x,rng,magnitude)
+    new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
+    return new_x
+def info_Window_Warp(X, magnitude,start,end, random_state=None, *args, **kwargs):
+    rng = check_random_state(random_state)
+    x = X.permute(0,2,1).detach().cpu().numpy()
+    new_x = window_warp(x,rng,magnitude,start=start,end=end)
     new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
     return new_x
 #Advance Method not include here
@@ -632,6 +666,16 @@ EXP_TEST_NAMES =[
     'exp_time_mask',
     'exp_bandstop',
     'exp_freq_shift',
+]
+INFO_EXP_LIST = [
+    (info_time_mask, 0, 100),
+    (info_Window_Warp, 0, 1), #sample freq=100, bandstop=48 because of notch
+    (info_Window_Slicing, 0, 1), #sample freq=100
+]
+INFO_TEST_NAMES =[
+    'info_time_mask',
+    'info_Window_Warp',
+    'info_Window_Slicing',
 ]
 
 AUGMENT_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST}
@@ -755,10 +799,21 @@ class InfoRAugment:
         print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}, mode={mode}')
         assert mode in ['a','p','qrs','t','n']
         self.detectors = Detectors(sfreq) #need input ecg: (seq_len)
+        self.mode = mode
         self.sfreq = sfreq
         self.pw_len = pw_len
         self.qw_len = qw_len
         self.tw_len = tw_len
+        if self.mode=='a':
+            self.start_s,self.end_s = 0,None
+        elif self.mode=='p':
+            self.start_s,self.end_s = -0.2*sfreq,-1
+        elif self.mode=='qrs':
+            self.start_s,self.end_s = -0.1*sfreq,-1
+        elif self.mode=='t':
+            self.start_s,self.end_s = 0,0.4*sfreq
+        else:
+            self.start_s,self.end_s = 0.4*sfreq,-0.2*sfreq
         self.p = p
         if isinstance(m,list):
             self.list_m = True
@@ -770,24 +825,45 @@ class InfoRAugment:
         self.n = n
         self.names = names
         self.rng = check_random_state(rd_seed)
-    def __call__(self, img):
+    def __call__(self, x):
         #print(img.shape)
-        seq_len , channel = img.shape
-        img = img.permute(1,0).view(1,channel,seq_len)
+        seq_len , channel = x.shape
+        x = x.permute(1,0).view(1,channel,seq_len)
         select_lead = 0 #!!!tmp
         rpeaks_array = self.detectors.pan_tompkins_detector(x[0,select_lead,:])
-        
-        select_names = self.rng.choice(self.names, size=self.n)
-        for name in select_names:
-            augment = get_augment(name)
-            use_op = self.rng.random() < self.p
-            if use_op:
-                op, minval, maxval = augment
-                val = float(self.m_dic[name]) * float(maxval - minval) + minval
-                img = op(img, val,random_state=self.rng)
-            else: #pass
-                pass
-        return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
+        seg_list = [] #to segment
+        start_point = 0 
+        for end_point in rpeaks_array + [seq_len]:
+            seg_list.append(x[:,:,start_point:end_point])
+            start_point = end_point
+        for i in range(1,len(seg_list)-1): #ignore first&last
+            #calculate start and end
+            seg_len = seg_list[i].shape[2]
+            if self.end_s==None:
+                seg_start,seg_end = 0,seg_len
+            elif self.mode=='n' and seg_len<0.6*self.sfreq:
+                seg_start,seg_end = 0,seg_len
+            elif seg_len>0.4*self.sfreq:
+                seg_start,seg_end = int(self.start_s),int(self.end_s)
+                if seg_start<0:
+                    seg_start = seg_len-seg_start
+                if seg_end<0:
+                    seg_end = seg_len-seg_end+1
+            else: #heart beat too short
+                seg_start,seg_end = 0,seg_len
+            #augment
+            select_names = self.rng.choice(self.names, size=self.n)
+            for name in select_names:
+                augment = get_augment(name)
+                use_op = self.rng.random() < self.p
+                if use_op:
+                    op, minval, maxval = augment
+                    val = float(self.m_dic[name]) * float(maxval - minval) + minval
+                    seg_list[i] = op(seg_list[i], val,seg_start,seg_end,random_state=self.rng)
+                else: #pass
+                    pass
+        new_x = torch.cat(seg_list,dim=2)
+        return new_x.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 if __name__ == '__main__':
     print('Test all operations')
