@@ -125,7 +125,7 @@ def create_hparams(mode, FLAGS):
         'fix_policy': FLAGS.fix_policy,
         'aug_p': FLAGS.aug_p,
         'class_wise': FLAGS.class_wise, #!!!class-wise search not finish yet
-        'info_region': FLAGS.info_region
+        
         }
 
     if FLAGS.enforce_prior:
@@ -176,7 +176,7 @@ def create_hparams(mode, FLAGS):
             hparams['policy_path'] = None
             # default start value of 0
             hparams['hp_policy'] = [0 for _ in range(4 * NUM_HP_TRANSFORM)]
-
+        hparams['info_region'] = FLAGS.info_region
         hparams['ray_name']  = FLAGS.ray_name
 
     else:
