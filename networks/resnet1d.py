@@ -141,9 +141,9 @@ class ResNet1d(nn.Module):
         self.pool = create_pool(concat_pooling=concat_pooling)
         self.fc = create_head1d((inplanes if fix_feature_dim else (2**len(layers)*inplanes)) * block.expansion, nc=num_classes, lin_ftrs=lin_ftrs_head, ps=ps_head, bn_final=bn_final_head, bn=bn_head, act=act_head, concat_pooling=concat_pooling)
         self.feature_extractor = nn.Sequential( *layers_tmp)
-        print(self.feature_extractor)
+        '''print(self.feature_extractor)
         print(self.pool)
-        print(self.fc)
+        print(self.fc)'''
         #head = create_head1d((inplanes if fix_feature_dim else (2**len(layers)*inplanes)) * block.expansion, nc=num_classes, lin_ftrs=lin_ftrs_head, ps=ps_head, bn_final=bn_final_head, bn=bn_head, act=act_head, concat_pooling=concat_pooling)
         #layers_tmp.append(head)
     def _make_layer(self, block, planes, blocks, stride=1,kernel_size=3):

@@ -103,8 +103,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
         multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,
-        info_region=None,
-        rd_seed=None, test_augment=False):
+        info_region=None, rd_seed=None, test_augment=False):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -184,12 +183,13 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             dataset = train
     classes = [i for i in range(dataset.num_class)]
     input_channel = dataset.channel
+    '''
     print('Print sample 0')
     samples = train[0] # data,len,label
     print(samples[0])
     print(samples[0].shape)
     print(samples[1])
-    print(samples[2])
+    print(samples[2])'''
 
     train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
     valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
