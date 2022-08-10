@@ -194,10 +194,7 @@ def search():
             hparams['mode'] = 'test' #change mode to test
             hparams['fix_policy'] = tune.grid_search(INFO_TEST_NAMES)
             assert hparams['info_region']!=None
-            if ',' in hparams['info_region']:
-                hparams['info_region'] = hparams['info_region'].split(',')
-            else:
-                hparams['info_region'] = [hparams['info_region']]
+            hparams['info_region'] = hparams['info_region'].split(',')
             region_len = len(hparams['info_region'])
             hparams['info_region'] = tune.grid_search(hparams['info_region'])
             hparams['rand_m'] = hparams['rand_m'] #just for first m

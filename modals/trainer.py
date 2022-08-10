@@ -30,7 +30,7 @@ from modals.custom_ops import (HardestNegativeTripletSelector,
                                SemihardNegativeTripletSelector)
 from modals.losses import (OnlineTripletLoss, adverserial_loss,
                            discriminator_loss)
-from modals.operation_tseries import ToTensor,TransfromAugment,TS_OPS_NAMES,TS_ADD_NAMES,ECG_OPS_NAMES
+from modals.operation_tseries import ToTensor,TransfromAugment,InfoRAugment,TS_OPS_NAMES,TS_ADD_NAMES,ECG_OPS_NAMES
 import wandb
 
 def count_parameters(model):
@@ -497,12 +497,13 @@ class TSeriesModelTrainer(TextModelTrainer):
             fix_policy = [fix_policy]
         self.fix_policy = fix_policy
         self.info_region = hparams['info_region']
+        print('Trainer get info region:',self.info_region)
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
             default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
-            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=hparams['info_region']
+            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region
             )
         random.seed()
         self.device = torch.device(
@@ -815,7 +816,13 @@ class TSeriesModelTrainer(TextModelTrainer):
     def change_augment(self,new_m):
         #not good code !!!
         print('Setting new augment m to ', new_m)
-        new_augment = [
+        if self.info_region:
+            new_augment = [
+            ToTensor(),
+            InfoRAugment(self.fix_policy,m=new_m,n=self.hparams['rand_n'],mode=self.info_region,p=self.hparams['aug_p'])
+            ]
+        else:
+            new_augment = [
             ToTensor(),
             TransfromAugment(self.fix_policy,new_m,n=self.hparams['rand_n'],p=self.hparams['aug_p'])
             ]
