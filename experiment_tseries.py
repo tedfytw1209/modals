@@ -208,7 +208,7 @@ def search():
             total_epoch = hparams['num_repeat'] * hparams['num_m']
             print('Region ', hparams['info_region'])
             print(f'Each experiment search for {region_len} regions {num_m} magnitudes and {num_repeat} samples')
-            len_m = 1
+            len_m = len(hparams['info_region'])
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
             hparams['rand_m'] = 0.5
