@@ -53,6 +53,7 @@ def create_parser(mode):
     parser.add_argument('--fix_policy', type=str, default=None, help='either a comma separated list of values')
     parser.add_argument('--aug_p',type=float, default=0.5, help='p for transfrom')
     parser.add_argument('--class_wise', action='store_true', help='use class-wise transfrom')
+    parser.add_argument('--info_region', type=str, default=None, help='either a comma separated list of values')
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
@@ -74,7 +75,6 @@ def create_parser(mode):
         parser.add_argument('--rand_n',type=int, nargs='+', default=1, help='RandAugment parameter n: Number of augmentation transformations')
         parser.add_argument('--num_repeat',type=int, default=10, help='')
         parser.add_argument('--num_m',type=int, default=20, help='')
-        parser.add_argument('--info_region', type=str, default=None, help='either a comma separated list of values')
     else:
         raise ValueError('unknown state')
 
@@ -125,7 +125,7 @@ def create_hparams(mode, FLAGS):
         'fix_policy': FLAGS.fix_policy,
         'aug_p': FLAGS.aug_p,
         'class_wise': FLAGS.class_wise, #!!!class-wise search not finish yet
-        
+        'info_region': FLAGS.info_region
         }
 
     if FLAGS.enforce_prior:
@@ -176,7 +176,7 @@ def create_hparams(mode, FLAGS):
             hparams['policy_path'] = None
             # default start value of 0
             hparams['hp_policy'] = [0 for _ in range(4 * NUM_HP_TRANSFORM)]
-        hparams['info_region'] = FLAGS.info_region
+
         hparams['ray_name']  = FLAGS.ray_name
 
     else:

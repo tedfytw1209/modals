@@ -770,7 +770,8 @@ class TransfromAugment_classwise:
         self.p = p
         assert len(m)==len(names)
         assert num_class==len(names)
-        self.m_dic = {class_idx:(name,em) for (class_idx,name,em) in zip(range(num_class),names,m)}
+        self.m_dic = {class_idx:(name.split('+'),em) for (class_idx,name,em) in zip(range(num_class),names,m)}
+        print('Class-wise dic:', self.m_dic)
         self.m = m      # [0, 1]
         self.n = n
         self.names = names
@@ -781,7 +782,7 @@ class TransfromAugment_classwise:
         img = img.permute(1,0).view(1,channel,seq_len)
         #select_names = self.rng.choice(self.names, size=self.n)
         trans_name, mag = self.m_dic[label]
-        select_names = self.rng.choice([trans_name], size=self.n)
+        select_names = self.rng.choice(trans_name, size=self.n)
         for name in select_names:
             augment = get_augment(name)
             use_op = self.rng.random() < self.p

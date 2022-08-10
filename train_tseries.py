@@ -25,7 +25,10 @@ def main(FLAGS, hparams):
         Aug_type = f'RANDAUG_{FLAGS.rand_m}_{FLAGS.rand_n}'
         proj = 'RandAugment'
     elif FLAGS.fix_policy!=None:
-        Aug_type = FLAGS.fix_policy
+        if FLAGS.class_wise:
+            Aug_type = 'Transfrom_classwise'
+        else:
+            Aug_type = FLAGS.fix_policy
         proj = 'RandAugment'
     else:
         Aug_type = 'NOAUG'
