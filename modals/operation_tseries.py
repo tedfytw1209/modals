@@ -872,7 +872,7 @@ class InfoRAugment:
                 if use_op:
                     op, minval, maxval = augment
                     val = float(self.m_dic[name]) * float(maxval - minval) + minval
-                    seg_list[i] = op(seg_list[i], val,seg_start,seg_end,random_state=self.rng)
+                    seg_list[i] = op(seg_list[i], val,start=seg_start,end=seg_end,random_state=self.rng)
                 else: #pass
                     pass
         new_x = torch.cat(seg_list,dim=2)
