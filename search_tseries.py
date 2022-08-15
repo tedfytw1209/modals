@@ -105,7 +105,7 @@ def search():
         'reinit':False,
         'api_key':API_KEY
     }
-    hparams["log_config"]= True
+    hparams["log_config"]= False
     hparams['wandb'] = wandb_config
 
     # if FLAGS.restore:
