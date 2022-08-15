@@ -17,6 +17,7 @@ def create_parser(mode):
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
     parser.add_argument('--dataset', default='trec')
     parser.add_argument('--labelgroup', default='')
+    parser.add_argument('--kfold', type=int, default=0, help='k folds')
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
     parser.add_argument('--default_split', action='store_true', help='use dataset deault split')

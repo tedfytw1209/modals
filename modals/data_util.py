@@ -12,6 +12,7 @@ from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
 from modals.datasets import PTBXL,WISDM,Chapman,EDFX
 from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment
+from sklearn.preprocessing import StandardScaler
 
 def save_txt_dataset(dataset, path):
     if not isinstance(path, Path):
@@ -103,7 +104,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
         multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,
-        info_region=None, rd_seed=None, test_augment=False):
+        info_region=None, rd_seed=None, test_augment=False, fold_assign=[]):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -155,7 +156,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         test_transfrom = []
     
     #split
-    if not default_split or dataset_name=='chapman': #chapman didn't have default split now!!!
+    if (not default_split or dataset_name=='chapman') and len(fold_assign)==0: #chapman didn't have default split now!!!
         dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
         total = len(dataset)
         random.seed(0) #!!!
@@ -167,6 +168,17 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
             train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
             train = Subset(dataset,train_idx)
+    elif len(fold_assign)==3: #train,valid,test
+        #dataset raw
+        train = dataset_func(dataroot,mode=fold_assign[0],multilabel=multilabel,**kwargs)
+        valid = dataset_func(dataroot,mode=fold_assign[1],multilabel=multilabel,**kwargs)
+        test = dataset_func(dataroot,mode=fold_assign[2],multilabel=multilabel,**kwargs)
+        #preprocess ???
+        ss = StandardScaler()
+        ss = train.fit_preprocess(ss)
+        ss = train.trans_preprocess(ss)
+        ss = valid.trans_preprocess(ss)
+        ss = test.trans_preprocess(ss)
     else:
         if dataset_name == 'edfx': #edfx have special split method
             dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
