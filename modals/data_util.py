@@ -173,7 +173,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         train = dataset_func(dataroot,mode=fold_assign[0],multilabel=multilabel,**kwargs)
         valid = dataset_func(dataroot,mode=fold_assign[1],multilabel=multilabel,**kwargs)
         test = dataset_func(dataroot,mode=fold_assign[2],multilabel=multilabel,**kwargs)
-        #preprocess ???
+        #preprocess !!!
         ss = StandardScaler()
         ss = train.fit_preprocess(ss)
         ss = train.trans_preprocess(ss)

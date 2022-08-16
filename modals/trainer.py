@@ -498,12 +498,26 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.fix_policy = fix_policy
         self.info_region = hparams['info_region']
         print('Trainer get info region:',self.info_region)
+        #kfold or not
+        train_val_test_folds = []
+        if hparams['kfold']>=0:
+            test_fold_idx = hparams['kfold']
+            train_val_test_folds = [[],[],[]] #train,valid,test
+            for i in range(10):
+                curr_fold = (i+test_fold_idx)%10 +1 #fold is 1~10
+                if i==0:
+                    train_val_test_folds[2].append(curr_fold)
+                elif i==9:
+                    train_val_test_folds[1].append(curr_fold)
+                else:
+                    train_val_test_folds[0].append(curr_fold)
+            print('Train/Valid/Test fold split ',train_val_test_folds)
         random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
             default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
-            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region
+            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region, fold_assign=train_val_test_folds
             )
         random.seed()
         self.device = torch.device(

@@ -113,6 +113,8 @@ def search():
 
     ray.init()
     if hparams['use_modals']: #MODALS search
+        if FLAGS.kfold>=0:
+            print(f'Running fold {FLAGS.kfold}/10 result')
         pbt = PopulationBasedTraining(
             time_attr="training_iteration",
             perturbation_interval=FLAGS.perturbation_interval,
@@ -142,6 +144,12 @@ def search():
         print(f'RandAugment grid search for {total_grid} samples')
         hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         hparams['rand_n'] = tune.grid_search(hparams['rand_n'])
+        if FLAGS.kfold==10:
+            print(f'Running 10 fold result')
+            hparams['kfold'] = tune.grid_search([i for i in range(hparams['kfold'])])
+        elif FLAGS.kfold>=0:
+            print(f'Running fold {FLAGS.kfold}/10 result')
+        
         #tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
         #    reduction_factor=3,brackets=1)
         '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
@@ -174,7 +182,11 @@ def search():
             len_m = 1
         total_grid = len_m * len(hparams['fix_policy'])
         print(f'Transfrom grid search for {total_grid} samples')
-        
+        if FLAGS.kfold==10:
+            print(f'Running 10 fold result')
+            hparams['kfold'] = tune.grid_search([i for i in range(hparams['kfold'])])
+        elif FLAGS.kfold>=0:
+            print(f'Running fold {FLAGS.kfold}/10 result')
         tune_scheduler = None
         analysis = tune.run(
             RayModel,

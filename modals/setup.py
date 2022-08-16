@@ -17,7 +17,7 @@ def create_parser(mode):
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
     parser.add_argument('--dataset', default='trec')
     parser.add_argument('--labelgroup', default='')
-    parser.add_argument('--kfold', type=int, default=0, help='k folds')
+    parser.add_argument('--kfold', type=int, default=-1, help='k folds')
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
     parser.add_argument('--default_split', action='store_true', help='use dataset deault split')
@@ -126,7 +126,8 @@ def create_hparams(mode, FLAGS):
         'fix_policy': FLAGS.fix_policy,
         'aug_p': FLAGS.aug_p,
         'class_wise': FLAGS.class_wise, #!!!class-wise search not finish yet
-        'info_region': FLAGS.info_region
+        'info_region': FLAGS.info_region,
+        'kfold': FLAGS.kfold,
         }
 
     if FLAGS.enforce_prior:

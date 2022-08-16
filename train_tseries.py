@@ -6,6 +6,11 @@ import time
 now_str = time.strftime("%Y%m%d-%H%M%S")
 
 def main(FLAGS, hparams):
+    if FLAGS.kfold==10: #not ready mow!!!
+        print(f'Running 10 fold result')
+        #hparams['kfold'] = tune.grid_search([i for i in range(hparams['kfold'])])
+    elif FLAGS.kfold>=0:
+        print(f'Running fold {FLAGS.kfold}/10 result')
     start_epoch = 0
     trainer = TSeriesModelTrainer(hparams, FLAGS.name)
     trail_id = 0
