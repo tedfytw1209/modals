@@ -70,8 +70,6 @@ def main(FLAGS, hparams):
         step_dic.update(info_dict_test)
         wandb.log(step_dic)
     trainer.save_checkpoint(hparams['checkpoint_dir'], e)
-    #test_acc, test_loss, info_dict_test = trainer._test(hparams['num_epochs'], trail_id, 'test')
-    #step_dic.update(info_dict_test)
     step_dic.update(result_valid_dic)
     step_dic.update(result_test_dic)
     wandb.log(step_dic)

@@ -522,11 +522,15 @@ class TSeriesModelTrainer(TextModelTrainer):
         random.seed()
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
+        #model
         print()
         print('### Device ###')
         print(self.device)
         self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
         self.net = self.net.to(self.device)
+        if hparams.get('restore',None) is not None:
+            start_epoch, _ = self.load_model(hparams['restore'])
+
         if self.multilabel:
             self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
         else:

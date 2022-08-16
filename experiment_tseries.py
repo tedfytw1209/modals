@@ -152,21 +152,15 @@ def search():
         print(f'RandAugment grid search for {total_grid} samples')
         hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         hparams['rand_n'] = tune.grid_search(hparams['rand_n'])
-        #tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
-        #    reduction_factor=3,brackets=1)
-        '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
-            reduction_factor=3,brackets=1)'''
         tune_scheduler = None
         analysis = tune.run(
             RayModel,
             name=hparams['ray_name'],
             scheduler=tune_scheduler,
-            #reuse_actors=True,
             verbose=True,
             metric="valid_acc",
             mode='max',
             checkpoint_score_attr="valid_acc",
-            #checkpoint_freq=FLAGS.checkpoint_freq,
             resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
             stop={"training_iteration": hparams['num_epochs']},
             config=hparams,
@@ -219,12 +213,10 @@ def search():
             RayModel,
             name=hparams['ray_name'],
             scheduler=tune_scheduler,
-            #reuse_actors=True,
             verbose=True,
             metric="valid_acc",
             mode='max',
             checkpoint_score_attr="valid_acc",
-            #checkpoint_freq=FLAGS.checkpoint_freq,
             resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},
             stop={"training_iteration": total_epoch},
             config=hparams,

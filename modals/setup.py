@@ -55,6 +55,8 @@ def create_parser(mode):
     parser.add_argument('--aug_p',type=float, default=0.5, help='p for transfrom')
     parser.add_argument('--class_wise', action='store_true', help='use class-wise transfrom')
     parser.add_argument('--info_region', type=str, default=None, help='either a comma separated list of values')
+    parser.add_argument('--ray_dir', type=str, default=RAY_DIR,  help='Ray directory.')
+    parser.add_argument('--ray_name', type=str, default='ray_experiment')
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
@@ -62,15 +64,15 @@ def create_parser(mode):
         parser.add_argument('--name', type=str, default='autoaug')
         parser.add_argument('--rand_m', type=float, nargs='+', default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
         parser.add_argument('--rand_n', type=int, default=1, help='RandAugment parameter n: Number of augmentation transformations')
+        parser.add_argument('--cpu', type=float, default=4, help='Allocated by Ray')
+        parser.add_argument('--gpu', type=float, default=0.12, help='Allocated by Ray')
 
     elif mode == 'search':
         ## Ray setting
-        parser.add_argument('--ray_dir', type=str, default=RAY_DIR,  help='Ray directory.')
         parser.add_argument('--num_samples', type=int, default=3, help='Number of Ray samples')
         parser.add_argument('--cpu', type=float, default=4, help='Allocated by Ray')
         parser.add_argument('--gpu', type=float, default=0.12, help='Allocated by Ray')
         parser.add_argument('--perturbation_interval', type=int, default=3)
-        parser.add_argument('--ray_name', type=str, default='ray_experiment')
         parser.add_argument('--ray_replay', type=str, default='', help='ray replay pbt')
         parser.add_argument('--rand_m',type=float, nargs='+', default=0.5, help='RandAugment parameter m: Magnitude for all the transformations')
         parser.add_argument('--rand_n',type=int, nargs='+', default=1, help='RandAugment parameter n: Number of augmentation transformations')
@@ -129,7 +131,7 @@ def create_hparams(mode, FLAGS):
         'info_region': FLAGS.info_region,
         'kfold': FLAGS.kfold,
         }
-
+    hparams['ray_name']  = FLAGS.ray_name #beacause k-fold
     if FLAGS.enforce_prior:
         hparams['prior_weight'] = FLAGS.prior_weight if FLAGS.prior_weight<=1 else FLAGS.prior_weight/10
 
@@ -178,9 +180,6 @@ def create_hparams(mode, FLAGS):
             hparams['policy_path'] = None
             # default start value of 0
             hparams['hp_policy'] = [0 for _ in range(4 * NUM_HP_TRANSFORM)]
-
-        hparams['ray_name']  = FLAGS.ray_name
-
     else:
         raise ValueError('unknown mode')
     #rand_m fix
