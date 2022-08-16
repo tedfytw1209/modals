@@ -183,7 +183,7 @@ def create_hparams(mode, FLAGS):
     else:
         raise ValueError('unknown mode')
     #rand_m fix
-    if isinstance(hparams['rand_m'],list) and len(hparams['rand_m'])==1:
+    if isinstance(hparams.get('rand_m',None),list) and len(hparams['rand_m'])==1:
         hparams['rand_m'] = hparams['rand_m'][0]
     # Child model
     hparams['model_name'] = FLAGS.model_name
