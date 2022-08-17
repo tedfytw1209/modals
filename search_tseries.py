@@ -1,4 +1,5 @@
 import random
+from timeit import repeat
 import wandb
 import numpy as np
 import ray
@@ -114,13 +115,18 @@ def search():
 
     ray.init()
     if hparams['use_modals']: #MODALS search
-        if FLAGS.kfold>=0:
-            print(f'Running fold {FLAGS.kfold}/10 result')
         pbt = PopulationBasedTraining(
             time_attr="training_iteration",
             perturbation_interval=FLAGS.perturbation_interval,
             custom_explore_fn=explore,
             log_config=True)
+        repeat_times = 1
+        if FLAGS.kfold==10:
+            print(f'Running 10 fold result')
+            pbt = Repeater(pbt,repeat=FLAGS.kfold)
+            repeat_times = 10
+        elif FLAGS.kfold>=0:
+            print(f'Running fold {FLAGS.kfold}/10 result')
         analysis = tune.run(
             RayModel,
             name=hparams['ray_name'],
@@ -135,7 +141,7 @@ def search():
             stop={"training_iteration": hparams['num_epochs']},
             config=hparams,
             local_dir=FLAGS.ray_dir,
-            num_samples=FLAGS.num_samples,
+            num_samples=FLAGS.num_samples*repeat_times,
             )
         print('pbt result:')
         print(pbt.config)  # Initial config
@@ -150,11 +156,6 @@ def search():
             hparams['kfold'] = tune.grid_search([i for i in range(hparams['kfold'])])
         elif FLAGS.kfold>=0:
             print(f'Running fold {FLAGS.kfold}/10 result')
-        
-        #tune_scheduler = ASHAScheduler(metric="valid_acc", mode="max",max_t=hparams['num_epochs'],grace_period=10,
-        #    reduction_factor=3,brackets=1)
-        '''tune_scheduler = ASHAScheduler(max_t=hparams['num_epochs'],grace_period=25,
-            reduction_factor=3,brackets=1)'''
         tune_scheduler = None
         analysis = tune.run(
             RayModel,

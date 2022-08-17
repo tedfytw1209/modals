@@ -32,6 +32,7 @@ from modals.losses import (OnlineTripletLoss, adverserial_loss,
                            discriminator_loss)
 from modals.operation_tseries import ToTensor,TransfromAugment,InfoRAugment,TS_OPS_NAMES,TS_ADD_NAMES,ECG_OPS_NAMES
 import wandb
+import ray.tune as tune
 
 def count_parameters(model):
     temp = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -501,8 +502,13 @@ class TSeriesModelTrainer(TextModelTrainer):
         print('Trainer get info region:',self.info_region)
         #kfold or not
         train_val_test_folds = []
-        if hparams['kfold']>=0:
+        if hparams['kfold']==10:
+            test_fold_idx = tune.suggest.repeater.TRIAL_INDEX
+        elif hparams['kfold']>=0:
             test_fold_idx = hparams['kfold']
+        else:
+            test_fold_idx = -1
+        if test_fold_idx>=0:
             train_val_test_folds = [[],[],[]] #train,valid,test
             for i in range(10):
                 curr_fold = (i+test_fold_idx)%10 +1 #fold is 1~10
