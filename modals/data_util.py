@@ -179,6 +179,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         ss = train.trans_preprocess(ss)
         ss = valid.trans_preprocess(ss)
         ss = test.trans_preprocess(ss)
+        dataset = train
     else:
         if dataset_name == 'edfx': #edfx have special split method
             dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
