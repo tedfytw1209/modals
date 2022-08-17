@@ -7,6 +7,7 @@ import ray.tune as tune
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
+from ray.tune.suggest import Repeater
 
 now_str = time.strftime("%Y%m%d-%H%M%S")
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
@@ -50,11 +51,6 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         return True
 
 def main(FLAGS, hparams):
-    if FLAGS.kfold==10: #not ready
-        print(f'Running 10 fold result')
-        #hparams['kfold'] = tune.grid_search([i for i in range(hparams['kfold'])])
-    elif FLAGS.kfold>=0:
-        print(f'Running fold {FLAGS.kfold}/10 result')
     #trainer = TSeriesModelTrainer(hparams, FLAGS.name)
     #wandb
     if FLAGS.use_modals:

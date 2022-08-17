@@ -9,6 +9,7 @@ from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
+from ray.tune.suggest import Repeater
 import time
 
 now_str = time.strftime("%Y%m%d-%H%M%S")
