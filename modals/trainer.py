@@ -110,7 +110,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'inplanes': n_hidden,
                   'num_classes': n_class,
                   'kernel_size': 5,
-                  'lin_ftrs_head': [n_hidden],
+                  'lin_ftrs_head': [n_hidden], #8/17 add
                   'ps_head': 0.5}
         net = resnet1d_wang(config)
         z_size = n_hidden * 2 #concat adaptive pool
