@@ -79,7 +79,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
         net = LSTM_ecg(config)
         z_size = n_hidden
     elif model_name == 'lstm_ptb':
-        n_hidden = 256
+        n_hidden = 128
         config = {
                   'n_embed': vocab,
                   'n_hidden': n_hidden,

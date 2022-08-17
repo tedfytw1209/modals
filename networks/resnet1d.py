@@ -122,7 +122,8 @@ class ResNet1d(nn.Module):
         self.inplanes = inplanes
         super().__init__()
         layers_tmp = []
-
+        self.input_channels = input_channels
+        self.num_classes = num_classes
         if(kernel_size_stem is None):
             kernel_size_stem = kernel_size[0] if isinstance(kernel_size,list) else kernel_size
         #stem
@@ -139,13 +140,16 @@ class ResNet1d(nn.Module):
                 layers_tmp.append(self._make_layer(block, inplanes if fix_feature_dim else (2**i)*inplanes, layers[i], stride=stride,kernel_size=kernel_size))
         
         self.pool = create_pool(concat_pooling=concat_pooling)
-        self.fc = create_head1d((inplanes if fix_feature_dim else (2**len(layers)*inplanes)) * block.expansion, nc=num_classes, lin_ftrs=lin_ftrs_head, ps=ps_head, bn_final=bn_final_head, bn=bn_head, act=act_head, concat_pooling=concat_pooling)
+        nf = (inplanes if fix_feature_dim else (2**len(layers)*inplanes)) * block.expansion
+        self.fc = create_head1d(nf, nc=num_classes, lin_ftrs=lin_ftrs_head, ps=ps_head, bn_final=bn_final_head, bn=bn_head, act=act_head, concat_pooling=concat_pooling)
+        self.fc.in_features = 2*nf if concat_pooling else nf
+        self.z_dim = 2*nf if concat_pooling else nf
         self.feature_extractor = nn.Sequential( *layers_tmp)
-        '''print(self.feature_extractor)
-        print(self.pool)
-        print(self.fc)'''
         #head = create_head1d((inplanes if fix_feature_dim else (2**len(layers)*inplanes)) * block.expansion, nc=num_classes, lin_ftrs=lin_ftrs_head, ps=ps_head, bn_final=bn_final_head, bn=bn_head, act=act_head, concat_pooling=concat_pooling)
         #layers_tmp.append(head)
+        
+        
+
     def _make_layer(self, block, planes, blocks, stride=1,kernel_size=3):
         downsample = None
         
@@ -174,7 +178,10 @@ class ResNet1d(nn.Module):
         self[-1][-1]=x
     def extract_features(self, x, seq_len=None):
         #convert to 1dcnn ways (bs,len,ch) -> (bs,ch,len)
-        x = x.transpose(1, 2) #(bs,len,ch) -> (bs, ch, len)
+        #adaptive transpose
+        x_shape = x.shape
+        if self.input_channels == x_shape[2]:
+            x = x.transpose(1, 2) #(bs,len,ch) -> (bs, ch, len)
         x = self.feature_extractor(x)
         x = self.pool(x)
         return x
