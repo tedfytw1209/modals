@@ -83,12 +83,13 @@ def search():
     if FLAGS.randaug:
         method = 'RandAug'
         proj = 'RandAugment'
-    elif 'search' in FLAGS.fix_policy:
+    elif FLAGS.fix_policy and 'search' in FLAGS.fix_policy:
         method = 'Transfrom'
         proj = 'RandAugment'
     else:
         method = 'MODAL'
         proj = 'MODAL'
+        now_str = ''
     #wandb
     experiment_name = f'{now_str}_{method}_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
     '''run_log = wandb.init(config=FLAGS, 
@@ -119,6 +120,8 @@ def search():
             time_attr="training_iteration",
             perturbation_interval=FLAGS.perturbation_interval,
             custom_explore_fn=explore,
+            metric="valid_acc",
+            mode='max',
             log_config=True)
         repeat_times = 1
         if FLAGS.kfold==10:
@@ -133,8 +136,6 @@ def search():
             scheduler=pbt,
             reuse_actors=True,
             verbose=True,
-            metric="valid_acc",
-            mode='max',
             checkpoint_score_attr="valid_acc",
             #checkpoint_freq=FLAGS.checkpoint_freq,
             resources_per_trial={"gpu": FLAGS.gpu, "cpu": FLAGS.cpu},

@@ -27,6 +27,10 @@ elif [[ $1 = "wisdm" ]]; then
         --epochs 400 --bs 128 --lr 0.001 --gpu 0.15 --cpu 2 --num_samples 16 --perturbation_interval 3 --ray_name ray_experiment_wisdm --distance_metric loss --metric_learning \
         --metric_loss random --metric_weight 0.03 --metric_margin 0.5 --enforce_prior --prior_weight 1 --default_split
 fi
+CUDA_VISIBLE_DEVICES=1     python search_tseries.py         --model_name resnet_wang         --data_dir /mnt/data2/teddy/ptbxl-dataset         --dataset ptbxl \
+    --subtrain_ratio 1.0         --valid_size 1         --kfold 9         --epochs 50     --bs 128     --lr 0.01         --wd 0.01         --gpu 0.25 --cpu 2 \
+    --num_samples 16 --perturbation_interval 3          --ray_name ray_ptbsup_kfold_resnet_modal         --distance_metric loss         --metric_learning \
+    --metric_loss random         --metric_weight 0.03         --metric_margin 0.5         --enforce_prior         --prior_weight 1         --labelgroup superdiagnostic
 
 CUDA_VISIBLE_DEVICES=6     python search_tseries.py         --model_name lstm_ptb         --data_dir /mnt/data2/teddy/ptbxl-dataset         --dataset ptbxl \
  --subtrain_ratio 1.0         --valid_size 1         --default_split         --epochs 50     --bs 128     --lr 0.01         --wd 0.01         --gpu 0.25 --cpu 2 \
