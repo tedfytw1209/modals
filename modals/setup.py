@@ -171,7 +171,7 @@ def create_hparams(mode, FLAGS):
             hparams['use_modals'] = False
             hparams['rand_m'] = FLAGS.rand_m
             hparams['rand_n'] = FLAGS.rand_n
-        elif 'search' in FLAGS.fix_policy:
+        elif FLAGS.fix_policy and 'search' in FLAGS.fix_policy:
             hparams['use_modals'] = False
             hparams['rand_m'] = FLAGS.rand_m
             hparams['rand_n'] = 1
