@@ -1,5 +1,4 @@
 # code is adapted from CADDA and braincode
-from audioop import reverse
 from numbers import Real
 import random
 import numpy as np
