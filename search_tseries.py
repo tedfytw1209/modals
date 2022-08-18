@@ -144,9 +144,6 @@ def search():
             local_dir=FLAGS.ray_dir,
             num_samples=FLAGS.num_samples*repeat_times,
             )
-        print('pbt result:')
-        print(pbt.config)  # Initial config
-        print(pbt._policy)  # Schedule, in the form of tuples (step, config)
     elif FLAGS.randaug: #randaug search tune.grid_search from rand_m*rand_n
         total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
         print(f'RandAugment grid search for {total_grid} samples')
