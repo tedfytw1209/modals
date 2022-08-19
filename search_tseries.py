@@ -205,9 +205,9 @@ def search():
             num_samples=1, #grid search no need
             )
     wandb.finish()
-    print("Best hyperparameters found were: ")
-    print(analysis.best_config)
-    print(analysis.best_trial)
+    #print("Best hyperparameters found were: ")
+    #print(analysis.best_config)
+    #print(analysis.best_trial)
     
 
     
