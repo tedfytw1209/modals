@@ -204,12 +204,12 @@ def search():
             local_dir=FLAGS.ray_dir,
             num_samples=1, #grid search no need
             )
-    
+    wandb.finish()
     print("Best hyperparameters found were: ")
     print(analysis.best_config)
     print(analysis.best_trial)
     
 
-    wandb.finish()
+    
 if __name__ == "__main__":
     search()
