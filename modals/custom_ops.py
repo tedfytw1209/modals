@@ -207,7 +207,7 @@ class FunctionNegativeTripletSelector(TripletSelector):
                     hard_negative = negative_indices[hard_negative]
                     triplets.append(
                         [anchor_positive[0], anchor_positive[1], hard_negative])
-
+        
         if len(triplets) == 0:
             if len(anchor_positive) < 2 and len(negative_indices) < 1:
                 triplets.append(
