@@ -79,7 +79,7 @@ def main(FLAGS, hparams):
             proj = 'MODAL'
         else:
             proj = 'RandAugment'
-    experiment_name = f'{Aug_type}_train_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}'
+    experiment_name = f'{now_str}_{Aug_type}_train_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}'
     '''run_log = wandb.init(config=FLAGS, 
                   project=proj,
                   group=experiment_name,
