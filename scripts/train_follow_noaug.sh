@@ -35,3 +35,7 @@ elif [[ $1 = "sst2" ]]; then
         --metric_margin 0.5 \
         --lr 0.01
 fi
+
+CUDA_VISIBLE_DEVICES=2,3     python -u train_tseries_fold.py         --model_name lstm_ptb         --dataset ptbxl         --valid_size 1         --subtrain_ratio 1.0 \
+ --policy_epochs 50         --epochs 50         --name ptbxl_model         --temperature 1         --bs 128 --lr 0.01 --wd 0.01 \
+ --data_dir /mnt/data2/teddy/ptbxl-dataset --kfold 10 --labelgroup superdiagnostic --gpu 0.33 --cpu 2 --ray_name ray_ptbsup_kfold_lstm_noaug
