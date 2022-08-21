@@ -57,6 +57,7 @@ def create_parser(mode):
     parser.add_argument('--info_region', type=str, default=None, help='either a comma separated list of values')
     parser.add_argument('--ray_dir', type=str, default=RAY_DIR,  help='Ray directory.')
     parser.add_argument('--ray_name', type=str, default='ray_experiment')
+    
     if mode == 'train':
         parser.add_argument('--use_modals', action='store_true', help='otherwise use no policy')
         parser.add_argument('--hp_policy', type=str, default=None, help='either a comma separated list of values')
