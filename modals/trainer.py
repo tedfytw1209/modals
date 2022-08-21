@@ -327,7 +327,7 @@ class TextModelTrainer(object):
 
             self.optimizer.zero_grad()
             loss.backward()  # Backward Propagation
-            clip_grad_norm_(self.net.parameters(), 5.0)
+            clip_grad_norm_(self.net.parameters(), 3.0)
             self.optimizer.step()  # Optimizer update
 
             if self.hparams['enforce_prior']:
