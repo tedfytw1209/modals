@@ -668,11 +668,13 @@ TS_EXP_LIST = [
     (exp_time_mask, 0, 100),
     (exp_bandstop, 0, 48), #sample freq=100, bandstop=48 because of notch
     (exp_freq_shift, 0, 10), #sample freq=100
+    (add_gaussian_noise, 0, 1),  # noise up to std
 ]
 EXP_TEST_NAMES =[
     'exp_time_mask',
     'exp_bandstop',
     'exp_freq_shift',
+    'add_gaussian_noise',
 ]
 INFO_EXP_LIST = [
     (info_time_mask, 0, 100),
