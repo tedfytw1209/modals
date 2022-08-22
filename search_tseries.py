@@ -12,8 +12,8 @@ from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
 from ray.tune.suggest import Repeater
 import time
+import os
 
-now_str = time.strftime("%Y%m%d-%H%M%S")
 
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
@@ -85,6 +85,7 @@ def explore(config):
 def search():
     FLAGS = create_parser('search')
     hparams = create_hparams('search', FLAGS)
+    now_str = time.strftime("%Y%m%d-%H%M%S")
     if FLAGS.randaug:
         method = 'RandAug'
         proj = 'RandAugment'

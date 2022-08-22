@@ -6,7 +6,7 @@ from modals.augmentation_transforms import NUM_HP_TRANSFORM
 RAY_DIR = './ray_results'
 DATA_DIR = '/mnt/data2/teddy/textdata/'
 EMB_DIR = '/mnt/data2/teddy/emb_dir/'
-CP_DIR = './checkpoints'
+CP_DIR = 'checkpoints'
 
 
 def create_parser(mode):
@@ -14,6 +14,7 @@ def create_parser(mode):
     parser = argparse.ArgumentParser()
 
     ## Datasetting
+    parser.add_argument('--base_path', type=str, default='', help='base path of code')
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
     parser.add_argument('--dataset', default='trec')
     parser.add_argument('--labelgroup', default='')
@@ -102,6 +103,7 @@ def create_hparams(mode, FLAGS):
         print(FLAGS.rand_n)
     hparams = {
         'valid_size': FLAGS.valid_size,
+        'base_path': FLAGS.base_path,
         'dataset_name': FLAGS.dataset,
         'dataset_dir': FLAGS.data_dir,
         'checkpoint_dir': FLAGS.checkpoint_dir,

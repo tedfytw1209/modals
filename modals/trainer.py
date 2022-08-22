@@ -420,8 +420,15 @@ class TextModelTrainer(object):
 
     # for benchmark
     def save_checkpoint(self, ckpt_dir, epoch, title=''):
+        if self.hparams.get('base_path',''):
+            ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt_dir)
+        if self.hparams.get('kfold',-1)>=0:
+            test_fold_idx = self.hparams['kfold']
+            add_word = f'_fold{test_fold_idx}'
+        else:
+            add_word = ''
         path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}_{self.file_name}{title}')
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}{title}')
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
 
