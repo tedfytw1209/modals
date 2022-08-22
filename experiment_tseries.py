@@ -173,6 +173,18 @@ def search():
             hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
             len_m = len(hparams['rand_m'])
+        elif 'expmag-' in FLAGS.fix_policy:
+            fix_policy = hparams['fix_policy'].split('-')[1]
+            hparams['mode'] = 'test' #change mode to test
+            hparams['fix_policy'] = fix_policy
+            hparams['rand_m'] = hparams['rand_m'] #just for first m
+            hparams['num_repeat'] = FLAGS.num_repeat
+            hparams['num_m'] = FLAGS.num_m
+            num_repeat = hparams['num_repeat']
+            num_m = hparams['num_m']
+            total_epoch = hparams['num_repeat'] * hparams['num_m']
+            print(f'Each experiment search for {num_m} magnitudes and {num_repeat} samples')
+            len_m = 1
         elif 'exp' in FLAGS.fix_policy:
             hparams['mode'] = 'test' #change mode to test
             hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
