@@ -196,6 +196,23 @@ def search():
             total_epoch = hparams['num_repeat'] * hparams['num_m']
             print(f'Each experiment search for {num_m} magnitudes and {num_repeat} samples')
             len_m = 1
+        elif 'beatreg' in FLAGS.fix_policy:
+            hparams['mode'] = 'test' #change mode to test
+            hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
+            hparams['beat_aug'] = True
+            assert hparams['info_region']!=None
+            hparams['info_region'] = hparams['info_region'].split(',')
+            region_len = len(hparams['info_region'])
+            hparams['info_region'] = tune.grid_search(hparams['info_region'])
+            hparams['rand_m'] = hparams['rand_m'] #just for first m
+            hparams['num_repeat'] = FLAGS.num_repeat
+            hparams['num_m'] = FLAGS.num_m
+            num_repeat = hparams['num_repeat']
+            num_m = hparams['num_m']
+            total_epoch = hparams['num_repeat'] * hparams['num_m']
+            print('Region ', hparams['info_region'])
+            print(f'Each experiment search for {region_len} regions {num_m} magnitudes and {num_repeat} samples')
+            len_m = len(hparams['info_region'])
         elif 'inforeg' in FLAGS.fix_policy:
             hparams['mode'] = 'test' #change mode to test
             hparams['fix_policy'] = tune.grid_search(INFO_TEST_NAMES)

@@ -30,7 +30,7 @@ from modals.custom_ops import (HardestNegativeTripletSelector,
                                SemihardNegativeTripletSelector)
 from modals.losses import (OnlineTripletLoss, adverserial_loss,
                            discriminator_loss)
-from modals.operation_tseries import ToTensor,TransfromAugment,InfoRAugment,TS_OPS_NAMES,TS_ADD_NAMES,ECG_OPS_NAMES
+from modals.operation_tseries import ToTensor,TransfromAugment,InfoRAugment,BeatAugment,TS_OPS_NAMES,TS_ADD_NAMES,ECG_OPS_NAMES
 import wandb
 import ray.tune as tune
 
@@ -498,8 +498,9 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             fix_policy = [fix_policy]
         self.fix_policy = fix_policy
-        self.info_region = hparams['info_region']
+        self.info_region = hparams.get('info_region',None)
         print('Trainer get info region:',self.info_region)
+        self.beat_aug = hparams.get('beat_aug',False)
         #kfold or not
         train_val_test_folds = []
         if hparams['kfold']==10:
@@ -524,7 +525,8 @@ class TSeriesModelTrainer(TextModelTrainer):
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
             default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
-            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region, fold_assign=train_val_test_folds
+            fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region, beat_aug=self.beat_aug,
+            fold_assign=train_val_test_folds
             )
         random.seed()
         self.device = torch.device(
@@ -841,7 +843,12 @@ class TSeriesModelTrainer(TextModelTrainer):
     def change_augment(self,new_m):
         #not good code !!!
         print('Setting new augment m to ', new_m)
-        if self.info_region:
+        if self.beat_aug and self.info_region:
+            new_augment = [
+            ToTensor(),
+            BeatAugment(self.fix_policy,m=new_m,n=self.hparams['rand_n'],mode=self.info_region,p=self.hparams['aug_p'])
+            ]
+        elif self.info_region:
             new_augment = [
             ToTensor(),
             InfoRAugment(self.fix_policy,m=new_m,n=self.hparams['rand_n'],mode=self.info_region,p=self.hparams['aug_p'])

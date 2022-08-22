@@ -11,7 +11,7 @@ from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
 from modals.datasets import PTBXL,WISDM,Chapman,EDFX
-from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment
+from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment,BeatAugment
 from sklearn.preprocessing import StandardScaler
 
 def save_txt_dataset(dataset, path):
@@ -104,7 +104,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
         multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,
-        info_region=None, rd_seed=None, test_augment=False, fold_assign=[]):
+        beat_aug=False,info_region=None, rd_seed=None, test_augment=False, fold_assign=[]):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -134,6 +134,12 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             class_wise_transfrom.extend([
                 ToTensor(),
                 TransfromAugment_classwise(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],num_class=5,rd_seed=rd_seed,p=randaug_dic['aug_p'])
+            ])
+        elif beat_aug and info_region!=None:
+            print('Heart Beat Infomation Region')
+            train_transfrom.extend([
+                ToTensor(),
+                BeatAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],mode=info_region,rd_seed=rd_seed,p=randaug_dic['aug_p'])
             ])
         elif info_region!=None:
             print('Infomation Region')
