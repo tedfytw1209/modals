@@ -21,7 +21,7 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
-
+        self.best_valid_acc = 0
     def step(self):#use step replace _train
         if self._iteration==0:
             wandb.config.update(self.config)
@@ -29,8 +29,13 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         step_dic = {f'epoch':self._iteration}
         train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
         test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
-        self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
-        self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
+        if valid_acc>self.best_valid_acc:
+            self.best_valid_acc = valid_acc
+            self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
+            self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
+            self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
+            step_dic['best_valid_acc_avg'] = valid_acc
+            step_dic['best_test_acc_avg'] = test_acc
         step_dic.update(info_dict)
         step_dic.update(info_dict_test)
         #if last epoch
