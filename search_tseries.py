@@ -6,7 +6,7 @@ import ray
 import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
-from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES
+from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES,EXP_TEST_NAMES
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
@@ -176,6 +176,24 @@ def search():
             hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
             len_m = len(hparams['rand_m'])
+        elif 'exp' in FLAGS.fix_policy:
+            hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
+            total_aug = len(hparams['fix_policy'])
+            hparams['rand_m'] = hparams['rand_m'] #for_last_m
+            hparams['num_m'] = FLAGS.num_m
+            num_m = hparams['num_m']
+            #make grid
+            if len(hparams['rand_m'])==1:
+                final_m = [hparams['rand_m'] for i in range(total_aug)]
+            elif len(hparams['rand_m'])==total_aug:
+                final_m = hparams['rand_m']
+            else:
+                print('Undefine rand_m, ERROR')
+                raise
+            #printout
+            
+            print(f'Each experiment search for {num_m} magnitudes and {total_aug} transfroms')
+            len_m = 1
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
             hparams['rand_m'] = 0.5
