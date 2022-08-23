@@ -199,7 +199,7 @@ def search():
                 final_m = hparams['rand_m']
             else:
                 print('Undefine rand_m, ERROR')
-                raise
+                raise BaseException("Error")
             grid_m = {EXP_TEST_NAMES[i]:np.linspace(0., final_m[i], num=num_m, endpoint=False) for i in range(total_aug)}
             def resolve_randm(spec):
                 fix_policy = spec.config.fix_policy
