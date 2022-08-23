@@ -179,19 +179,24 @@ def search():
             )
     elif 'search' in FLAGS.fix_policy: #test over all transfroms
         if 'mag' in FLAGS.fix_policy:
+            len_m = len(hparams['rand_m'])
             hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
-            len_m = len(hparams['rand_m'])
         elif 'fixmag-' in FLAGS.fix_policy:
+            len_m = len(hparams['rand_m'])
             fix_policy = hparams['fix_policy'].split('-')[1]
             hparams['fix_policy'] = fix_policy
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
-            len_m = len(hparams['rand_m'])
         elif 'exp' in FLAGS.fix_policy:
-            hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
-            total_aug = len(hparams['fix_policy'])
             hparams['num_m'] = FLAGS.num_m
             num_m = hparams['num_m']
+            hparams['fix_policy'] = tune.grid_search(EXP_TEST_NAMES)
+            hparams['num_m'] = tune.grid_search([i for i in range(num_m)])
+            total_aug = len(EXP_TEST_NAMES)
+            print(f'Each experiment search for {num_m} magnitudes and {total_aug} transfroms')
+            print('Fix policy:', hparams['fix_policy'])
+            print('num_m:', hparams['num_m'])
+            print('Final rand_m:', hparams['rand_m'])
             #make grid
             if len(hparams['rand_m'])==1:
                 final_m = [hparams['rand_m'] for i in range(total_aug)]
@@ -201,19 +206,22 @@ def search():
                 print('Undefine rand_m, ERROR')
                 raise BaseException("Error")
             grid_m = {EXP_TEST_NAMES[i]:np.linspace(0., final_m[i], num=num_m, endpoint=False) for i in range(total_aug)}
+            print('Grid dic:',grid_m)
             def resolve_randm(spec):
                 fix_policy = spec.config.fix_policy
-                randm_range = grid_m[fix_policy]
-                return tune.grid_search(randm_range)
-            hparams['rand_m'] = resolve_randm
+                num_m = spec.config.num_m
+                randm = grid_m[fix_policy][num_m]
+                return randm
+            #hparams['rand_m'] = resolve_randm
+            hparams['rand_m'] = tune.sample_from(resolve_randm)
             #printout
-            print(f'Each experiment search for {num_m} magnitudes and {total_aug} transfroms')
+            
             len_m = 1
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
             hparams['rand_m'] = 0.5
             len_m = 1
-        total_grid = len_m * len(hparams['fix_policy'])
+        total_grid = len_m * len(hparams['fix_policy']['grid_search'])
         print(f'Transfrom grid search for {total_grid} samples')
         if FLAGS.kfold==10:
             print(f'Running 10 fold result')
