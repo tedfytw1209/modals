@@ -14,7 +14,7 @@ from ray.tune.suggest import Repeater
 import time
 import os
 
-
+os.environ['WANDB_START_METHOD'] = 'thread'
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
@@ -200,7 +200,7 @@ def search():
             else:
                 print('Undefine rand_m, ERROR')
                 raise
-            grid_m = {EXP_TEST_NAMES[i]:np.linspace(0., final_m[i], num=num_m) for i in range(total_aug)}
+            grid_m = {EXP_TEST_NAMES[i]:np.linspace(0., final_m[i], num=num_m, endpoint=False) for i in range(total_aug)}
             def resolve_randm(spec):
                 fix_policy = spec.config.fix_policy
                 randm_range = grid_m[fix_policy]

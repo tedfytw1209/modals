@@ -148,6 +148,7 @@ def create_hparams(mode, FLAGS):
         hparams['policy_path'] = None
         hparams['hp_policy'] = None
         hparams['fix_policy'] = FLAGS.fix_policy
+        hparams['name'] = FLAGS.name
         if FLAGS.use_modals:
             if FLAGS.hp_policy == 'random':
                 # random policy
@@ -169,6 +170,7 @@ def create_hparams(mode, FLAGS):
             hparams['rand_m'] = FLAGS.rand_m
             hparams['rand_n'] = FLAGS.rand_n
     elif mode == 'search':
+        hparams['name'] = FLAGS.ray_name
         if FLAGS.randaug:
             #RandAug search
             hparams['use_modals'] = False

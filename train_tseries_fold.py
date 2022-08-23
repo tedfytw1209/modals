@@ -8,9 +8,11 @@ from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
 from ray.tune.suggest import Repeater
+import os
 
 now_str = time.strftime("%Y%m%d-%H%M%S")
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
+os.environ['WANDB_START_METHOD'] = 'thread'
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup

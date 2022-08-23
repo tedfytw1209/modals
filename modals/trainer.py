@@ -488,7 +488,10 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.hparams = hparams
         print(hparams)
         #wandb.config.update(hparams)
-        self.name = name
+        if name:
+            self.name = name
+        else:
+            self.name = hparams.get('name','')
         self.multilabel = hparams['multilabel']
         self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
             'rand_m':hparams.get('rand_m',0),'augselect':hparams.get('augselect',''),'aug_p':hparams.get('aug_p',0.5)}
@@ -868,3 +871,27 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.train_loader.dataset.augmentations = new_augment
         self.valid_loader.dataset.augmentations = new_augment
         self.test_loader.dataset.augmentations = new_augment
+    # for benchmark
+    def save_checkpoint(self, ckpt_dir, epoch, title=''):
+        if self.hparams.get('base_path',''):
+            ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt_dir)
+        add_word = ''
+        if self.hparams.get('kfold',-1)>=0:
+            test_fold_idx = self.hparams['kfold']
+            add_word += f'_fold{test_fold_idx}'
+        if self.fix_policy:
+            rand_m = self.hparams.get('rand_m',0)
+            add_word += f'_{self.fix_policy}{rand_m}'
+        path = os.path.join(
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}{title}')
+        if not os.path.exists(ckpt_dir):
+            os.makedirs(ckpt_dir)
+
+        torch.save({'state': self.net.state_dict(),
+                    'epoch': epoch,
+                    'loss': self.loss_dict,
+                    'optimizer': self.optimizer.state_dict(),
+                    'scheduler': self.scheduler.state_dict()}, path)
+
+        print(f'=> saved the model {self.file_name} to {path}')
+        return path
