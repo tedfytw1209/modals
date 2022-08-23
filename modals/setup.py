@@ -32,6 +32,7 @@ def create_parser(mode):
     parser.add_argument('--gpu_device',  type=str, default='cuda:0')
     parser.add_argument('--multilabel',  action='store_true', help='otherwise use normal classification')
 
+    parser.add_argument('--save_model', action='store_true',default=False, help='save model')
     parser.add_argument('--checkpoint_freq', type=int, default=50, help='Checkpoint frequency.')
     parser.add_argument('--checkpoint_dir', type=str, default=CP_DIR,  help='checkpoint directory.')
     parser.add_argument('--restore', type=str, default=None, help='If specified, tries to restore from given path.')
@@ -107,6 +108,7 @@ def create_hparams(mode, FLAGS):
         'dataset_name': FLAGS.dataset,
         'dataset_dir': FLAGS.data_dir,
         'checkpoint_dir': FLAGS.checkpoint_dir,
+        'save_model': FLAGS.save_model,
         'batch_size': FLAGS.bs,
         'multilabel': FLAGS.multilabel,
         'gradient_clipping_by_global_norm': 5.0,

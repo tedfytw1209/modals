@@ -29,7 +29,8 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
         if valid_acc>self.best_valid_acc:
             self.best_valid_acc = valid_acc
-            self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
+            if self.config['save_model']:
+                self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
             self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
             self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
             step_dic['best_valid_acc_avg'] = valid_acc
