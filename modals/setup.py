@@ -111,7 +111,7 @@ def create_hparams(mode, FLAGS):
         'save_model': FLAGS.save_model,
         'batch_size': FLAGS.bs,
         'multilabel': FLAGS.multilabel,
-        'gradient_clipping_by_global_norm': 5.0,
+        'gradient_clipping_by_global_norm': 1.0,
         'mixup': FLAGS.mixup,
         'alpha': FLAGS.alpha,
         'lr': FLAGS.lr,
