@@ -99,6 +99,9 @@ def search():
         now_str = ''
     #wandb
     experiment_name = f'{now_str}_{method}_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
+    group_name = experiment_name
+    if method=='MODAL':
+        group_name = f'{method}2_search{FLAGS.ray_replay}_{FLAGS.dataset}{FLAGS.labelgroup}_{FLAGS.model_name}_e{FLAGS.epochs}_lr{FLAGS.lr}_ray{FLAGS.ray_name}'
     '''run_log = wandb.init(config=FLAGS, 
                   project='MODAL',
                   name=experiment_name,
@@ -108,7 +111,7 @@ def search():
     wandb_config = {
         #'config':FLAGS, 
         'project':proj,
-        'group':experiment_name,
+        'group':group_name,
         #'name':experiment_name,
         'dir':'./',
         'job_type':"DataAugment",
