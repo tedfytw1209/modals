@@ -16,6 +16,7 @@ os.environ['WANDB_START_METHOD'] = 'thread'
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
+        os.environ['WANDB_START_METHOD'] = 'thread'
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
         self.best_valid_acc = 0

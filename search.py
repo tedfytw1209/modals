@@ -6,10 +6,11 @@ import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TextModelTrainer
 from ray.tune.schedulers import PopulationBasedTraining
-
+import os
 
 class RayModel(tune.Trainable):
     def _setup(self, *args):
+        os.environ['WANDB_START_METHOD'] = 'thread'
         self.trainer = TextModelTrainer(self.config)
 
     def _train(self):
