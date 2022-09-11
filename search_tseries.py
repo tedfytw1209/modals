@@ -19,6 +19,7 @@ API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
+        os.environ['WANDB_START_METHOD'] = 'thread'
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
         self.best_valid_acc = 0
