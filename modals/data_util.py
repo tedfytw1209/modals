@@ -117,6 +117,8 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset_func = EDFX
     elif dataset_name == 'chapman':
         dataset_func = Chapman
+        if labelgroup:
+            kwargs['labelgroup']=labelgroup
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
     #rand augment !!! have bug when not using default split
@@ -202,13 +204,6 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             dataset = train
     classes = [i for i in range(dataset.num_class)]
     input_channel = dataset.channel
-    '''
-    print('Print sample 0')
-    samples = train[0] # data,len,label
-    print(samples[0])
-    print(samples[0].shape)
-    print(samples[1])
-    print(samples[2])'''
 
     train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True,drop_last=True)#8/19
     valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
