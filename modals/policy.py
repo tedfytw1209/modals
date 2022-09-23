@@ -309,11 +309,13 @@ class PolicyManager(object):
 
             class_means.append(class_mean.numpy())
             # in-class pari-wise distance
-            icpd = euclidean_distances(class_imgs)
-            aicpd = np.sum(icpd)/(len(icpd)*(len(icpd)-1))
-            cluster_closeness.append(aicpd)
-
-            if weight_metric == 'l2':
+            if len(class_imgs)>=2:
+                icpd = euclidean_distances(class_imgs)
+                aicpd = np.sum(icpd)/(len(icpd)*(len(icpd)-1))
+                cluster_closeness.append(aicpd)
+            if len(class_imgs)==0:
+                img_weights = 0
+            elif weight_metric == 'l2':
                 # weight by l2 distance
                 img_weights = img_distances
                 img_weights -= img_weights.max(0)  # numerical stability
