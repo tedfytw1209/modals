@@ -625,8 +625,11 @@ class TSeriesModelTrainer(TextModelTrainer):
                                                                 targets_a, targets_b))
             # apply pba transformation
             if self.hparams['use_modals']:
-                features = self.pm.apply_policy(
-                    features, labels, cur_epoch, batch_idx, verbose=1).to(self.device)
+                try: #tmp fix
+                    features = self.pm.apply_policy(
+                        features, labels, cur_epoch, batch_idx, verbose=1).to(self.device)
+                except:
+                    features = features.to(self.device)
             outputs = self.net.classify(features)  # Forward Propagation
             if self.hparams['mixup']:
                 inputs, targets_a, targets_b, lam = mixup_data(outputs, labels,
