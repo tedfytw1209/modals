@@ -835,8 +835,12 @@ class TSeriesModelTrainer(TextModelTrainer):
 
     def run_model(self, epoch, trail_id):
         if self.hparams['use_modals']:
-            self.pm.reset_tseries_data_pool(
-                self.net, self.train_loader, self.hparams['temperature'], self.hparams['distance_metric'], self.hparams['dataset_name'])
+            try: #tmp fix
+                self.pm.reset_tseries_data_pool(
+                    self.net, self.train_loader, self.hparams['temperature'], self.hparams['distance_metric'], self.hparams['dataset_name'])
+            except Exception as e:
+                print(e)
+                print('tmp fix')
 
         train_acc, tl, train_dic = self._train(epoch, trail_id)
         self.loss_dict['train'].append(tl)
