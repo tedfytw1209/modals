@@ -201,12 +201,12 @@ def permute_channels(X, permutation, *args, **kwargs):
     return X[..., permutation, :]
 
 
-def _sample_mask_start(X, mask_len_samples, random_state):
+def _sample_mask_start(X, mask_len_samples, random_state, seq_len=None):
     rng = check_random_state(random_state)
-    seq_length = torch.as_tensor(X.shape[-1], device=X.device)
+    #seq_length = torch.as_tensor(X.shape[-1], device=X.device)
     mask_start = torch.as_tensor(rng.uniform(
         low=0, high=1, size=X.shape[0],
-    ), device=X.device) * (seq_length - mask_len_samples)
+    ), device=X.device) * (seq_len - mask_len_samples)
     return mask_start
 def _mask_time(X, mask_start_per_sample, mask_len_samples):
     mask = torch.ones_like(X)
@@ -224,13 +224,14 @@ def _relaxed_mask_time(X, mask_start_per_sample, mask_len_samples):
         torch.sigmoid(s * -(t - mask_start_per_sample - mask_len_samples))
     ).float().to(X.device)
     return X * mask
-def random_time_mask(X, mask_len_samples, random_state=None, *args, **kwargs):
-    mask_start = _sample_mask_start(X, mask_len_samples, random_state)
+def random_time_mask(X, mask_len_samples, random_state=None,seq_len=None,sfreq=100, *args, **kwargs):
+    mask_len_samples = mask_len_samples * sfreq
+    mask_start = _sample_mask_start(X, mask_len_samples, random_state,seq_len=seq_len)
     return _relaxed_mask_time(X, mask_start, mask_len_samples)
-def exp_time_mask(X, mask_len_samples, random_state=None, *args, **kwargs):
-    seq_len = X.shape[2]
+def exp_time_mask(X, mask_len_samples, random_state=None,seq_len=None, *args, **kwargs):
+    #seq_len = X.shape[2]
     all_mask_len_samples = int(seq_len * mask_len_samples / 100.0)
-    mask_start = _sample_mask_start(X, all_mask_len_samples, random_state)
+    mask_start = _sample_mask_start(X, all_mask_len_samples, random_state,seq_len=seq_len)
     return _mask_time(X, mask_start, all_mask_len_samples)
 def _sample_mask_start_info(X, mask_len_samples,start,end, random_state):
     rng = check_random_state(random_state)
@@ -460,8 +461,9 @@ def info_Window_Slicing(X, magnitude,start,end, random_state=None, *args, **kwar
     new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
     return new_x
 
-def Window_Slicing_Circle(X, magnitude,window_size=1000, random_state=None, *args, **kwargs):
+def Window_Slicing_Circle(X, magnitude, random_state=None, *args, **kwargs):
     rng = check_random_state(random_state)
+    window_size = X.shape[2]
     x = X.detach().cpu().numpy()
     dup_x = np.concatenate([x,x],axis=2)
     window_start = rng.randint(0, dup_x.shape[2] - window_size)
@@ -494,13 +496,9 @@ def TS_Permutation(X, magnitude, random_state=None, *args, **kwargs):
 #Concat_Resample same as Window Slicing
 #Time Warp using generalize time-series module
 def time_warp(x,rng, sigma=0.2, knot=4): #ref (batch, time_steps, channel)
-    
     orig_steps = np.arange(x.shape[1])
-    
     random_warps = rng.normal(loc=1.0, scale=sigma, size=(x.shape[0], knot+2, 1)) #modify for same warp between channels
-
     warp_steps = (np.ones((x.shape[2],1))*(np.linspace(0, x.shape[1]-1., num=knot+2))).T
-    
     ret = np.zeros_like(x)
     for i, pat in enumerate(x):
         for dim in range(x.shape[2]):
@@ -543,14 +541,12 @@ def Scaling(X, magnitude, random_state=None, *args, **kwargs):
 #Adding Noise: low=>baseline wander
 def magnitude_warp(x, rng, sigma=0.2, knot=4): #ref (batch, time_steps, channel)
     orig_steps = np.arange(x.shape[1])
-    
     random_warps = rng.normal(loc=1.0, scale=sigma, size=(x.shape[0], knot+2, x.shape[2]))
     warp_steps = (np.ones((x.shape[2],1))*(np.linspace(0, x.shape[1]-1., num=knot+2))).T
     ret = np.zeros_like(x)
     for i, pat in enumerate(x):
         warper = np.array([CubicSpline(warp_steps[:,dim], random_warps[i,:,dim])(orig_steps) for dim in range(x.shape[2])]).T
         ret[i] = pat * warper
-
     return ret
 def Magnitude_Warp(X, magnitude, random_state=None, *args, **kwargs):
     rng = check_random_state(random_state)
@@ -626,7 +622,7 @@ TS_AUGMENT_LIST = [
         (fft_surrogate, 0, 1),  # 2
         (channel_dropout, 0, 1),  # 3
         (channel_shuffle, 0, 1),  # 4
-        (random_time_mask, 0, 100),  # 5 impl
+        (random_time_mask, 0, 1),  # 5 impl
         (add_gaussian_noise, 0, 0.2),  # 6
         (random_bandstop, 0, 2),  # 7
         (sign_flip, 0, 1),  # 8
@@ -729,18 +725,21 @@ SELECTIVE_DICT = {
 def get_augment(name):
     return AUGMENT_DICT[name]
 
-def apply_augment(img, name, level, rd_seed=None):
+def apply_augment(img, name, level, rd_seed=None,sfreq=100,seq_len=None):
     augment_fn, low, high = get_augment(name)
     assert 0 <= level
     assert level <= 1
     #change tseries signal from (len,channel) to (batch,channel,len)
-    #print('Device: ',img.device)
-    seq_len , channel = img.shape
-    img = img.permute(1,0).view(1,channel,seq_len)
+    max_seq_len , channel = img.shape
+    if seq_len==None: #assume aug_img != img
+        seq_len = max_seq_len
+    img = img.permute(1,0).view(1,channel,max_seq_len)
+    tmp_img = img[:,:,:seq_len]
     aug_value = level * (high - low) + low
     #print('Device: ',aug_value.device)
-    aug_img = augment_fn(img, aug_value,random_state=rd_seed)
-    return aug_img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
+    aug_img = augment_fn(tmp_img, aug_value,random_state=rd_seed,sfreq=sfreq,seq_len=seq_len)
+    img[:,:,:seq_len] = aug_img #tmp fix, may become slower
+    return img.permute(0,2,1).detach().view(max_seq_len,channel) #back to (len,channel)
 
 def plot_line(t,x,title=None):
     plt.clf()
@@ -765,7 +764,7 @@ class ToTensor:
         return torch.tensor(img).float()
 
 class RandAugment:
-    def __init__(self, n, m, rd_seed=None,augselect=''):
+    def __init__(self, n, m, rd_seed=None,augselect='',sfreq=100,seq_len=None):
         self.n = n
         self.m = m      # [0, 1]
         self.augment_list = TS_AUGMENT_LIST
@@ -777,6 +776,8 @@ class RandAugment:
             self.augment_list += ECG_AUGMENT_LIST
         self.augment_ids = [i for i in range(len(self.augment_list))]
         self.rng = check_random_state(rd_seed)
+        self.sfreq = sfreq
+        self.seq_len = seq_len
     def __call__(self, img):
         #print(img.shape)
         seq_len , channel = img.shape
@@ -786,12 +787,12 @@ class RandAugment:
             op, minval, maxval = self.augment_list[id]
             val = float(self.m) * float(maxval - minval) + minval
             #print(val)
-            img = op(img, val,random_state=self.rng)
+            img = op(img, val,random_state=self.rng,sfreq=self.sfreq,seq_len=self.seq_len)
 
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 class TransfromAugment:
-    def __init__(self, names,m ,p=0.5,n=1, rd_seed=None):
+    def __init__(self, names,m ,p=0.5,n=1, rd_seed=None,sfreq=100,seq_len=None):
         print(f'Using Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
         if isinstance(m,list):
@@ -804,6 +805,8 @@ class TransfromAugment:
         self.n = n
         self.names = names
         self.rng = check_random_state(rd_seed)
+        self.sfreq = sfreq
+        self.seq_len = seq_len
     def __call__(self, img, **_kwargs): #ignore other args
         #print(img.shape)
         seq_len , channel = img.shape #(channel, seq_len)
@@ -815,13 +818,13 @@ class TransfromAugment:
             if use_op:
                 op, minval, maxval = augment
                 val = float(self.m_dic[name]) * float(maxval - minval) + minval
-                img = op(img, val,random_state=self.rng)
+                img = op(img, val,random_state=self.rng,sfreq=self.sfreq,seq_len=self.seq_len)
             else: #pass
                 pass
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
 
 class TransfromAugment_classwise:
-    def __init__(self, names,m ,p=0.5,n=1,num_class=None, rd_seed=None):
+    def __init__(self, names,m ,p=0.5,n=1,num_class=None, rd_seed=None,sfreq=100,seq_len=None):
         print(f'Using Class-wise Fix transfroms {names}, m={m}, n={n}, p={p}')
         self.p = p
         assert len(m)==len(names)
@@ -832,6 +835,8 @@ class TransfromAugment_classwise:
         self.n = n
         self.names = names
         self.rng = check_random_state(rd_seed)
+        self.sfreq = sfreq
+        self.seq_len = seq_len
     def __call__(self, img, label):
         #print(img.shape)
         seq_len , channel = img.shape
@@ -845,7 +850,7 @@ class TransfromAugment_classwise:
             if use_op:
                 op, minval, maxval = augment
                 val = float(mag) * float(maxval - minval) + minval
-                img = op(img, val,random_state=self.rng)
+                img = op(img, val,random_state=self.rng,sfreq=self.sfreq,seq_len=self.seq_len)
             else: #pass
                 pass
         return img.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
@@ -919,7 +924,7 @@ class InfoRAugment:
                 if use_op:
                     op, minval, maxval = augment
                     val = float(self.m_dic[name]) * float(maxval - minval) + minval
-                    seg_list[i] = op(seg_list[i], val,start=seg_start,end=seg_end,random_state=self.rng)
+                    seg_list[i] = op(seg_list[i], val,start=seg_start,end=seg_end,random_state=self.rng,sfreq=self.sfreq)
                 else: #pass
                     pass
         new_x = torch.cat(seg_list,dim=2)
@@ -995,7 +1000,7 @@ class BeatAugment:
                 if use_op:
                     op, minval, maxval = augment
                     val = float(self.m_dic[name]) * float(maxval - minval) + minval
-                    seg_list[i] = op(seg_list[i], val,random_state=self.rng)
+                    seg_list[i] = op(seg_list[i], val,random_state=self.rng,sfreq=self.sfreq)
         new_x = torch.cat(seg_list,dim=2)
         assert new_x.shape[2]==seq_len
         return new_x.permute(0,2,1).detach().view(seq_len,channel) #back to (len,channel)
@@ -1014,7 +1019,7 @@ class KeepAugment(object): #need fix
     def __init__(self, mode, length,thres=0.6,transfrom=None,default_select=None, early=False, low = False,
         possible_segment=[1],grid_region=False, reverse=False,info_upper = 0.0,
         sfreq=100,pw_len=0.2,tw_len=0.4,**_kwargs):
-        assert mode in ['auto','b','p','t'] #auto: all, b: heart beat(-0.2,0.4), p: p-wave(-0.2,0), t: t-wave(0,0.4)
+        assert mode in ['auto','b','p','t','rand'] #auto: all, b: heart beat(-0.2,0.4), p: p-wave(-0.2,0), t: t-wave(0,0.4)
         self.mode = mode
         if self.mode=='p':
             self.start_s,self.end_s = -0.2*sfreq,0
@@ -1025,7 +1030,7 @@ class KeepAugment(object): #need fix
         self.length = length
         self.early = early
         self.low = low
-        self.sfreq = sfreq
+        self.sfreq = sfreq #transfroms sfreq add for adaptive_augmentor
         self.pw_len = pw_len
         self.tw_len = tw_len
         self.trans = transfrom
@@ -1033,6 +1038,8 @@ class KeepAugment(object): #need fix
         self.thres = thres
         self.possible_segment = possible_segment
         self.grid_region = grid_region
+        # normal, paste=> paste back important score higher then, cut=> not augment important region
+        # when reverse, paste=> paste back important score lower then, cut=> augment important region
         self.reverse = reverse
         self.info_upper = info_upper
         self.detectors = Detectors(sfreq) #need input ecg: (seq_len)
@@ -1041,7 +1048,7 @@ class KeepAugment(object): #need fix
         ##self.m_pool = torch.nn.AvgPool1d(kernel_size=self.length, stride=1, padding=0) #for winodow sum
         print(f'Apply InfoKeep Augment: mode={self.mode}, threshold={self.thres}, transfrom={self.trans}')
     #func
-    def get_augment(self,apply_func,selective):
+    def get_augment(self,apply_func=None,selective='paste'):
         if apply_func!=None:
             augment = apply_func
         elif self.trans!=None:
@@ -1049,10 +1056,12 @@ class KeepAugment(object): #need fix
             if self.default_select:
                 selective = self.default_select
         return augment, selective
-    def get_selective(self,selective,thres=None):
+    def get_selective(self,selective,thres=None,use_reverse=None):
         #cut or paste
         if thres==None:
             thres = self.thres
+        if use_reverse==None:
+            use_reverse = self.reverse
         assert selective in ['cut','paste']
         if selective=='cut':
             info_aug = thres
@@ -1062,17 +1071,19 @@ class KeepAugment(object): #need fix
             info_aug = 1.0 - thres
             com_idx = 1
             upper_bound = 1.0 - (1.0 - info_aug) * self.info_upper
-        if self.reverse:
+        if use_reverse:
             com_idx = (com_idx+1)%2
+            upper_bound = 1.0 - upper_bound
         compare_func = self.compare_func_list[com_idx] #[lt, ge]
         bound_func = self.compare_func_list[(com_idx+1)%2] #[lt, ge]
-        
         return info_aug, compare_func, upper_bound, bound_func
     def get_slc(self,t_series,model):
         t_series_ = t_series.clone().detach()
         if self.mode=='auto':
             t_series_.requires_grad = True
             slc_ = self.get_importance(model,t_series_)
+        elif self.mode=='rand':
+            slc_ = self.get_rand(t_series)
         else:
             slc_ = self.get_heartbeat(t_series)
         t_series_.requires_grad = False #no need gradient now
@@ -1088,7 +1099,7 @@ class KeepAugment(object): #need fix
             windowed_accum = [window_w for i in range(seg_number+1)]
         return seg_accum,windowed_accum
     #kwargs for apply_func, batch_inputs
-    def __call__(self, t_series, model=None,selective='paste', apply_func=None, **kwargs):
+    def __call__(self, t_series, model=None,selective='paste', apply_func=None, seq_len=None, **kwargs):
         b,w,c = t_series.shape
         augment, selective = self.get_augment(apply_func,selective)
         slc_, t_series_ = self.get_slc(t_series,model)
@@ -1108,7 +1119,7 @@ class KeepAugment(object): #need fix
         aug_t_s_list = []
         start, end = 0,w
         win_start, win_end = 0,windowed_w
-        for i,(t_s, slc, windowed_slc_each) in enumerate(zip(t_series_, slc_, windowed_slc)):
+        for i,(t_s, slc, windowed_slc_each, each_seq_len) in enumerate(zip(t_series_, slc_, windowed_slc, seq_len)):
             #find region for each segment
             region_list,inforegion_list = [],[]
             for seg_idx in range(seg_number):
@@ -1129,10 +1140,14 @@ class KeepAugment(object): #need fix
                 inforegion_list.append(info_region)
             #augment & paste back
             if selective=='cut':
-                for info_region in inforegion_list:
-                    info_region = augment(info_region,i=i,**kwargs) #some other augment if needed
+                t_s_aug = t_s.clone().detach().cpu()
+                t_s_aug = augment(t_s_aug,i=i,seq_len=each_seq_len,**kwargs) #maybe some error!!!
+                inforegion_list = [] #empty
+                for (x1,x2) in region_list:
+                    info_region = t_s_aug[x1: x2,:].clone().detach().cpu()
+                    inforegion_list.append(info_region)
             else:
-                t_s = augment(t_s,i=i,**kwargs) #some other augment if needed
+                t_s = augment(t_s,i=i,seq_len=each_seq_len,**kwargs) #some other augment if needed
                 
             for reg_i in range(len(inforegion_list)):
                 x1, x2 = region_list[reg_i][0], region_list[reg_i][1]
@@ -1144,7 +1159,7 @@ class KeepAugment(object): #need fix
             for param in model.parameters():
                 param.requires_grad = True
         return torch.stack(aug_t_s_list, dim=0) #(b,seq,ch)
-    def Augment_search(self, t_series, model=None,selective='paste', apply_func=None,ops_names=None, **kwargs):
+    def Augment_search(self, t_series, model=None,selective='paste', apply_func=None,ops_names=None, seq_len=None, **kwargs):
         b,w,c = t_series.shape
         augment, selective = self.get_augment(apply_func,selective)
         slc_, t_series_ = self.get_slc(t_series,model)
@@ -1166,7 +1181,7 @@ class KeepAugment(object): #need fix
         aug_t_s_list = []
         start, end = 0,w
         win_start, win_end = 0,windowed_w
-        for i,(t_s, slc, windowed_slc_each) in enumerate(zip(t_series_, slc_, windowed_slc)):
+        for i,(t_s, slc, windowed_slc_each, each_seq_len) in enumerate(zip(t_series_, slc_, windowed_slc,seq_len)):
             #find region
             for k, ops_name in enumerate(ops_names):
                 t_s_tmp = t_s.clone().detach().cpu()
@@ -1189,10 +1204,14 @@ class KeepAugment(object): #need fix
                     inforegion_list.append(info_region)
                 #augment & paste back
                 if selective=='cut':
-                    for info_region in inforegion_list:
-                        info_region = augment(info_region,i=i,k=k,ops_name=ops_name,**kwargs) #!!! some error
+                    t_s_aug = t_s_tmp.clone().detach().cpu()
+                    t_s_aug = augment(t_s_aug,i=i,k=k,ops_name=ops_name,seq_len=each_seq_len,**kwargs) #maybe some error!!!
+                    inforegion_list = [] #empty
+                    for (x1,x2) in region_list:
+                        info_region = t_s_aug[x1: x2,:].clone().detach().cpu()
+                        inforegion_list.append(info_region)
                 else:
-                    t_s_tmp = augment(t_s_tmp,i=i,k=k,ops_name=ops_name,**kwargs) #some other augment if needed
+                    t_s_tmp = augment(t_s_tmp,i=i,k=k,ops_name=ops_name,seq_len=each_seq_len,**kwargs) #some other augment if needed
                     #print('Size compare: ',t_s[x1: x2, :].shape,info_region.shape)
                 for reg_i in range(len(inforegion_list)):
                     x1, x2 = region_list[reg_i][0], region_list[reg_i][1]
@@ -1247,6 +1266,13 @@ class KeepAugment(object): #need fix
             imp_map = torch.from_numpy(imp_map)
             imp_map_list.append(imp_map)
         return torch.stack(imp_map_list, dim=0) #(b,seq)
+    def get_rand(self,x):
+        b, seq_len , channel = x.shape
+        imp_map_list = []
+        for x_each in x:
+            imp_map = torch.rand(seq_len)
+            imp_map_list.append(imp_map)
+        return torch.stack(imp_map_list, dim=0) #(b,seq)
 #segment gradient
 def stop_gradient_keep(trans_image, magnitude, keep_thre, region_list):
     x1, x2 = region_list[0][0], region_list[0][1]
@@ -1267,7 +1293,7 @@ class AdaKeepAugment(KeepAugment): #
     def __init__(self, mode, length,thres=0.6,transfrom=None,default_select=None, early=False, low = False,
         possible_segment=[1],grid_region=False, reverse=False,info_upper = 0.0, thres_adapt=True, adapt_target='len',
         sfreq=100,pw_len=0.2,tw_len=0.4,**_kwargs):
-        assert mode in ['auto','b','p','t'] #auto: all, b: heart beat(-0.2,0.4), p: p-wave(-0.2,0), t: t-wave(0,0.4)
+        assert mode in ['auto','b','p','t','rand'] #auto: all, b: heart beat(-0.2,0.4), p: p-wave(-0.2,0), t: t-wave(0,0.4)
         self.mode = mode
         if self.mode=='p':
             self.start_s,self.end_s = -0.2*sfreq,0
@@ -1275,11 +1301,13 @@ class AdaKeepAugment(KeepAugment): #
             self.start_s,self.end_s = -0.2*sfreq,0.4*sfreq
         elif self.mode=='t':
             self.start_s,self.end_s = 0,0.4*sfreq
+        assert adapt_target in ['len','seg','way']
         self.adapt_target = adapt_target
+        self.way = [('cut',False),('cut',True),('paste',False),('paste',True)] #(selective,reverse)
         self.length = length #len is a list if adapt target 
         self.early = early
         self.low = low
-        self.sfreq = sfreq
+        self.sfreq = sfreq #transfroms sfreq add for adaptive_augmentor
         self.pw_len = pw_len
         self.tw_len = tw_len
         self.trans = transfrom
@@ -1292,10 +1320,12 @@ class AdaKeepAugment(KeepAugment): #
         self.info_upper = info_upper
         self.detectors = Detectors(sfreq) #need input ecg: (seq_len)
         self.compare_func_list = [le,ge]
+        self.all_stages = ['trans','keep']
+        self.stage = 0
         #'torch.nn.functional.avg_pool1d' use this for segment
-        print(f'Apply InfoKeep Augment: mode={self.mode}, threshold={self.thres}, transfrom={self.trans}')
+        print(f'Apply InfoKeep Augment: mode={self.mode},target={self.adapt_target}, threshold={self.thres}, transfrom={self.trans}')
     #kwargs for apply_func, batch_inputs
-    def __call__(self, t_series, model=None,selective='paste', apply_func=None,len_idx=None, keep_thres=None, **kwargs):
+    def __call__(self, t_series, model=None,selective='paste', apply_func=None,len_idx=None, keep_thres=None, seq_len=None, **kwargs):
         b,w,c = t_series.shape
         augment, selective = self.get_augment(apply_func,selective)
         slc_, t_series_ = self.get_slc(t_series,model)
@@ -1307,13 +1337,20 @@ class AdaKeepAugment(KeepAugment): #
         t_series_ = t_series_.detach().cpu()
         aug_t_s_list = []
         start, end = 0,w
-        for i,(t_s, slc) in enumerate(zip(t_series_, slc_)):
+        for i,(t_s, slc,each_seq_len) in enumerate(zip(t_series_, slc_,seq_len)):
             #len choose
-            info_aug, compare_func, info_bound, bound_func = self.get_selective(selective,thres=keep_thres[i])
+            use_reverse = None
             if self.adapt_target=='len':
                 total_len = self.length[len_idx[i]]
-            else:
+            elif self.adapt_target=='way':
+                select_way = self.way[len_idx[i]]
+                selective = select_way[0]
+                use_reverse = select_way[1]
+            elif self.adapt_target=='seg':
                 seg_number = self.possible_segment[len_idx[i]]
+            else:
+                raise 
+            info_aug, compare_func, info_bound, bound_func = self.get_selective(selective,thres=keep_thres[i],use_reverse=use_reverse)
             info_len = int(total_len/seg_number)
             windowed_slc = torch.nn.functional.avg_pool1d(slc.view(1,1,w),kernel_size=info_len, stride=1, padding=0).view(1,-1)
             windowed_w = windowed_slc.shape[1]
@@ -1356,10 +1393,14 @@ class AdaKeepAugment(KeepAugment): #
                 inforegion_list.append(info_region)
             #augment & paste back
             if selective=='cut':
-                for info_region in inforegion_list: #augment segment
-                    info_region = augment(info_region,i=i,**kwargs) #some other augment if needed
+                t_s_aug = t_s.clone().detach().cpu()
+                t_s_aug = augment(t_s_aug,i=i,seq_len=each_seq_len,**kwargs) #maybe some error!!!
+                inforegion_list = [] #empty
+                for (x1,x2) in region_list:
+                    info_region = t_s_aug[x1: x2,:].clone().detach().cpu()
+                    inforegion_list.append(info_region)
             else:
-                t_s = augment(t_s,i=i,**kwargs) #some other augment if needed
+                t_s = augment(t_s,i=i,seq_len=each_seq_len,**kwargs) #some other augment if needed
             #paste back
             for reg_i in range(len(inforegion_list)):
                 x1, x2 = region_list[reg_i][0], region_list[reg_i][1]
@@ -1371,28 +1412,37 @@ class AdaKeepAugment(KeepAugment): #
             for param in model.parameters():
                 param.requires_grad = True
         return torch.stack(aug_t_s_list, dim=0) #(b,seq,ch)
-    def Augment_search(self, t_series, model=None,selective='paste', apply_func=None,ops_names=None, keep_thres=None, **kwargs):
+    def make_params(self,adapt_target,each_len=None,seg_number=None,selective=None):
+        if adapt_target=='len': #search over keep len or keep segment
+            keepway_params = [(selective,self.reverse) for i in range(len(self.length))]
+            keeplen_params = self.length
+            keepseg_params = [seg_number for i in range(len(self.length))]
+        elif adapt_target=='way':
+            keepway_params = self.way
+            keeplen_params = [each_len for i in range(len(self.way))]
+            keepseg_params = [seg_number for i in range(len(self.way))]
+        elif adapt_target=='seg':
+            keepway_params = [(selective,self.reverse) for i in range(len(self.possible_segment))]
+            keeplen_params = [each_len for i in range(len(self.possible_segment))]
+            keepseg_params = self.possible_segment
+        else:
+            raise
+
+        return keepway_params, keeplen_params, keepseg_params
+    def Augment_search(self, t_series, model=None,selective='paste', apply_func=None,ops_names=None, keep_thres=None, seq_len=None, **kwargs):
         b,w,c = t_series.shape
         augment, selective = self.get_augment(apply_func,selective)
         slc_, t_series_ = self.get_slc(t_series,model)
         magnitudes = kwargs['magnitudes']
-        #info_aug, compare_func, info_bound, bound_func = self.get_selective(selective)
-        #seg_number = np.random.choice(self.possible_segment)
-        #each_len = self.length[0]
-        #print(slc_)
-        #print(windowed_slc)
-        #print(quant_scores)
         t_series_ = t_series_.detach().cpu()
         aug_t_s_list = []
-        if self.adapt_target=='len': #search over keep len or keep segment
-            keeplen_params = self.length
-            keepseg_params = [seg_number for i in range(len(self.length))]
-        else:
-            keeplen_params = [each_len for i in range(len(self.possible_segment))]
-            keepseg_params = self.possible_segment
-        for i,(t_s, slc) in enumerate(zip(t_series_, slc_)):
-            info_aug, compare_func, info_bound, bound_func = self.get_selective(selective,thres=keep_thres[i])
-            for (each_len, seg_number) in zip(keeplen_params,keepseg_params):
+        each_len, seg_number = self.length[0], self.possible_segment[0]
+        keepway_params, keeplen_params, keepseg_params = self.make_params(self.adapt_target,each_len,seg_number,selective)
+        for i,(t_s, slc,each_seq_len) in enumerate(zip(t_series_, slc_,seq_len)):
+            for (each_way,each_len, seg_number) in zip(keepway_params,keeplen_params,keepseg_params):
+
+                (selective, use_reverse) = each_way
+                info_aug, compare_func, info_bound, bound_func = self.get_selective(selective,thres=keep_thres[i],use_reverse=use_reverse)
                 #select a segment number
                 info_len = int(each_len/seg_number)
                 windowed_slc = torch.nn.functional.avg_pool1d(slc.view(1,1,w),kernel_size=info_len, stride=1, padding=0).view(1,-1)
@@ -1426,27 +1476,24 @@ class AdaKeepAugment(KeepAugment): #
                         x1 = np.clip(x - info_len // 2, 0, w)
                         x2 = np.clip(x + info_len // 2, 0, w)
                         region_list.append([x1,x2])
-                        '''while(True):
-                            x = np.random.randint(start,end)
-                            x1 = np.clip(x - info_len // 2, 0, w)
-                            x2 = np.clip(x + info_len // 2, 0, w)
-                            reg_mean = slc[x1: x2].mean()
-                            if compare_func(reg_mean,quant_score) and bound_func(reg_mean,bound_score):
-                                region_list.append([x1,x2])
-                                break'''
                         info_region = t_s_tmp[x1: x2,:].clone().detach().cpu()
                         inforegion_list.append(info_region)
                     #augment & paste back
                     if selective=='cut':
-                        for info_region in inforegion_list:
-                            info_region = augment(info_region,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,**kwargs) #some error
+                        t_s_aug = t_s_tmp.clone().detach().cpu()
+                        t_s_aug = augment(t_s_aug,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,seq_len=each_seq_len,**kwargs) #maybe some error!!!
+                        inforegion_list = [] #empty
+                        for (x1,x2) in region_list:
+                            info_region = t_s_aug[x1: x2,:].clone().detach().cpu()
+                            inforegion_list.append(info_region)
+                        #for info_region in inforegion_list:
+                        #    info_region = augment(info_region,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,**kwargs)
                     else:
-                        t_s_tmp = augment(t_s_tmp,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,**kwargs) #some other augment if needed
+                        t_s_tmp = augment(t_s_tmp,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,seq_len=each_seq_len,**kwargs) #some other augment if needed
                         #print('Size compare: ',t_s[x1: x2, :].shape,info_region.shape)
                     for reg_i in range(len(inforegion_list)):
                         x1, x2 = region_list[reg_i][0], region_list[reg_i][1]
                         t_s_tmp[x1: x2, :] = inforegion_list[reg_i]
-                    #!!!bug when multisegment
                     t_s_tmp = stop_gradient_keep(t_s_tmp.cuda(), magnitudes[i][k], keep_thres[i],region_list) #add keep thres
                     aug_t_s_list.append(t_s_tmp)
         #back
@@ -1455,6 +1502,99 @@ class AdaKeepAugment(KeepAugment): #
             for param in model.parameters():
                 param.requires_grad = True
         return torch.stack(aug_t_s_list, dim=0) #(b*lens*ops,seq,ch)
+    
+    #independent search, ops_names is this turn params and fix_idx is this turn fixs
+    ###!!!Not a good implement!!!###
+    def Augment_search_ind(self, t_series, model=None,selective='paste', apply_func=None,ops_names=None,fix_idx=None, keep_thres=None,seq_len=None, **kwargs):
+        b,w,c = t_series.shape
+        augment, selective = self.get_augment(apply_func,selective)
+        slc_, t_series_ = self.get_slc(t_series,model)
+        magnitudes = kwargs['magnitudes']
+        t_series_ = t_series_.detach().cpu()
+        aug_t_s_list = []
+        stage_name = self.all_stages[self.stage]
+        #keep param or transfrom param
+        if stage_name=='trans':
+            keeplen_params = fix_idx
+        #keep len or segment
+        each_len, seg_number = self.length[0], self.possible_segment[0]
+        keepway_params, keeplen_params, keepseg_params = self.make_params(self.adapt_target,each_len,seg_number,selective)
+        for i,(t_s, slc,each_seq_len) in enumerate(zip(t_series_, slc_,seq_len)):
+            if stage_name=='trans': #from all possible to a fix number
+                keepway_params_l = [keepway_params[fix_idx[i]]]
+                keeplen_params_l = [keeplen_params[fix_idx[i]]]
+                keepseg_params_l = [keepseg_params[fix_idx[i]]]
+            else:
+                keepway_params_l,keeplen_params_l,keepseg_params_l = keepway_params,keeplen_params,keepseg_params
+            for (each_way,each_len, seg_number) in zip(keepway_params_l,keeplen_params_l,keepseg_params_l):
+                (selective, use_reverse) = each_way
+                info_aug, compare_func, info_bound, bound_func = self.get_selective(selective,thres=keep_thres[i],use_reverse=use_reverse)
+                #select a segment number
+                info_len = int(each_len/seg_number)
+                windowed_slc = torch.nn.functional.avg_pool1d(slc.view(1,1,w),kernel_size=info_len, stride=1, padding=0).view(1,-1)
+                windowed_w = windowed_slc.shape[1]
+                windowed_len = int(windowed_w / seg_number)
+                seg_len = int(w / seg_number)
+                seg_accum, windowed_accum = self.get_seg(seg_number,seg_len,w,windowed_w,windowed_len)
+                windowed_slc_each = windowed_slc[0]
+                win_start, win_end = 0,windowed_w
+                #find region
+                if stage_name=='keep': #from all possible to a fix number
+                    ops_names_l = [ops_names[fix_idx[i]]]
+                else:
+                    ops_names_l = ops_names
+                for k, ops_name in enumerate(ops_names_l):
+                    t_s_tmp = t_s.clone().detach().cpu()
+                    region_list,inforegion_list = [],[]
+                    for seg_idx in range(seg_number):
+                        if self.grid_region:
+                            start, end = seg_accum[seg_idx], seg_accum[seg_idx+1]
+                            win_start, win_end = windowed_accum[seg_idx], windowed_accum[seg_idx+1]
+                        seg_window = windowed_slc_each[win_start:win_end]
+                        quant_score = torch.quantile(seg_window,info_aug)
+                        bound_score = torch.quantile(seg_window,info_bound)
+                        select_windows = (compare_func(seg_window,quant_score) & bound_func(seg_window,bound_score)).nonzero(as_tuple=True)[0].detach().cpu().numpy()
+                        if len(select_windows)==0:
+                            print('origin window: ', seg_window)
+                            print('window index', select_windows.shape)
+                            print('no result:')
+                            print('quant_score: ',quant_score)
+                            print('bound_score: ',bound_score)
+                            print('max windows: ',torch.max(seg_window))
+                        select_p = np.random.choice(select_windows) + win_start #window start for adjust
+                        x = select_p + info_len // 2 #back to seg
+                        x1 = np.clip(x - info_len // 2, 0, w)
+                        x2 = np.clip(x + info_len // 2, 0, w)
+                        region_list.append([x1,x2])
+                        info_region = t_s_tmp[x1: x2,:].clone().detach().cpu()
+                        inforegion_list.append(info_region)
+                    #augment & paste back
+                    if selective=='cut':
+                        t_s_aug = t_s_tmp.clone().detach().cpu()
+                        t_s_aug = augment(t_s_aug,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,seq_len=each_seq_len,**kwargs) #maybe some error!!!
+                        inforegion_list = [] #empty
+                        for (x1,x2) in region_list:
+                            info_region = t_s_aug[x1: x2,:].clone().detach().cpu()
+                            inforegion_list.append(info_region)
+                    else:
+                        t_s_tmp = augment(t_s_tmp,i=i,k=k,ops_name=ops_name,keep_thres=keep_thres,seq_len=each_seq_len,**kwargs) #some other augment if needed
+                        #print('Size compare: ',t_s[x1: x2, :].shape,info_region.shape)
+                    for reg_i in range(len(inforegion_list)):
+                        x1, x2 = region_list[reg_i][0], region_list[reg_i][1]
+                        t_s_tmp[x1: x2, :] = inforegion_list[reg_i]
+                    t_s_tmp = stop_gradient_keep(t_s_tmp.cuda(), magnitudes[i][k], keep_thres[i],region_list) #add keep thres
+                    aug_t_s_list.append(t_s_tmp)
+        #back
+        if self.mode=='auto':
+            model.train()
+            for param in model.parameters():
+                param.requires_grad = True
+        out_ts = torch.stack(aug_t_s_list, dim=0)
+        return out_ts #(b*lens,seq,ch) or (b*ops,seq,ch)
+    
+    def change_stage(self):
+        #stage change
+        self.stage = (self.stage+1) % len(self.all_stages)
 
 if __name__ == '__main__':
     print('Test all operations')
