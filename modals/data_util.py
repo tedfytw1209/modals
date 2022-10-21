@@ -10,7 +10,7 @@ import torchtext.datasets as txtdatasets
 from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
-from modals.datasets import PTBXL,WISDM,Chapman,EDFX
+from modals.datasets import EDFX,PTBXL,Chapman,WISDM,ICBEB,Georgia
 from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment,BeatAugment
 from sklearn.preprocessing import StandardScaler
 
@@ -119,8 +119,17 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset_func = Chapman
         if labelgroup:
             kwargs['labelgroup']=labelgroup
+    elif dataset_name == 'icbeb':
+        dataset_func = ICBEB
+        if labelgroup:
+            kwargs['labelgroup']=labelgroup
+    elif dataset_name == 'georgia':
+        dataset_func = Georgia
+        if labelgroup:
+            kwargs['labelgroup']=labelgroup
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
+    dataset_Hz = dataset_func.Hz
     #rand augment !!! have bug when not using default split
     train_transfrom = []
     class_wise_transfrom = []
@@ -128,31 +137,35 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         print('Using RandAugment')
         train_transfrom.extend([
             ToTensor(),
-            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed,augselect=randaug_dic['augselect'])])
+            RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed,augselect=randaug_dic['augselect'],sfreq=dataset_Hz)])
     if len(fix_policy_list)>0:
         print('Using Transfrom')
         if class_wise:
             print('Class-Wise') #tmp fix of num_class!!!
             class_wise_transfrom.extend([
                 ToTensor(),
-                TransfromAugment_classwise(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],num_class=5,rd_seed=rd_seed,p=randaug_dic['aug_p'])
+                TransfromAugment_classwise(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
+                num_class=5,rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz) #tmp!!!
             ])
         elif beat_aug and info_region!=None:
             print('Heart Beat Infomation Region')
             train_transfrom.extend([
                 ToTensor(),
-                BeatAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],mode=info_region,rd_seed=rd_seed,p=randaug_dic['aug_p'])
+                BeatAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
+                mode=info_region,rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz)
             ])
         elif info_region!=None:
             print('Infomation Region')
             train_transfrom.extend([
                 ToTensor(),
-                InfoRAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],mode=info_region,rd_seed=rd_seed,p=randaug_dic['aug_p'])
+                InfoRAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
+                mode=info_region,rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz)
             ])
         else:
             train_transfrom.extend([
                 ToTensor(),
-                TransfromAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],rd_seed=rd_seed,p=randaug_dic['aug_p'])
+                TransfromAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
+                rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz)
             ])
     
     if test_augment:

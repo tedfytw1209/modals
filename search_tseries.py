@@ -154,6 +154,7 @@ def search():
             config=hparams,
             local_dir=FLAGS.ray_dir,
             num_samples=FLAGS.num_samples*repeat_times,
+            max_concurrent_trials=FLAGS.num_samples*repeat_times,
             )
     elif FLAGS.randaug: #randaug search tune.grid_search from rand_m*rand_n
         total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
@@ -183,14 +184,14 @@ def search():
             num_samples=1, #grid search no need
             )
     elif 'search' in FLAGS.fix_policy: #test over all transfroms
-        if 'mag' in FLAGS.fix_policy:
-            len_m = len(hparams['rand_m'])
-            hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
-            hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
-        elif 'fixmag-' in FLAGS.fix_policy:
+        if 'fixmag-' in FLAGS.fix_policy:
             len_m = len(hparams['rand_m'])
             fix_policy = hparams['fix_policy'].split('-')[1]
             hparams['fix_policy'] = fix_policy
+            hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+        elif 'mag' in FLAGS.fix_policy:
+            len_m = len(hparams['rand_m'])
+            hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         elif 'exp' in FLAGS.fix_policy:
             hparams['num_m'] = FLAGS.num_m

@@ -625,11 +625,12 @@ class TSeriesModelTrainer(TextModelTrainer):
                                                                 targets_a, targets_b))
             # apply pba transformation
             if self.hparams['use_modals']:
-                try: #tmp fix
+                try:
                     features = self.pm.apply_policy(
                         features, labels, cur_epoch, batch_idx, verbose=1).to(self.device)
-                except:
-                    features = features.to(self.device)
+                except Exception as e:
+                    print(e)
+                    print('tmp ignore error')
             outputs = self.net.classify(features)  # Forward Propagation
             if self.hparams['mixup']:
                 inputs, targets_a, targets_b, lam = mixup_data(outputs, labels,
@@ -838,8 +839,12 @@ class TSeriesModelTrainer(TextModelTrainer):
 
     def run_model(self, epoch, trail_id):
         if self.hparams['use_modals']:
-            self.pm.reset_tseries_data_pool(
-                self.net, self.train_loader, self.hparams['temperature'], self.hparams['distance_metric'], self.hparams['dataset_name'])
+            try: #tmp fix
+                self.pm.reset_tseries_data_pool(
+                    self.net, self.train_loader, self.hparams['temperature'], self.hparams['distance_metric'], self.hparams['dataset_name'])
+            except Exception as e:
+                print(e)
+                print('tmp fix')
 
         train_acc, tl, train_dic = self._train(epoch, trail_id)
         self.loss_dict['train'].append(tl)

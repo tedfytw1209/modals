@@ -310,8 +310,8 @@ class PolicyManager(object):
             class_means.append(class_mean.numpy())
             # in-class pari-wise distance
             if len(class_imgs)>=2:
-                print(class_imgs)
-                print(torch.isnan(class_imgs).any())
+                #print(class_imgs)
+                #print(torch.isnan(class_imgs).any())
                 icpd = euclidean_distances(class_imgs)
                 aicpd = np.sum(icpd)/(len(icpd)*(len(icpd)-1))
                 cluster_closeness.append(aicpd)
