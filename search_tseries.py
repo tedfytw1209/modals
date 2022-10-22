@@ -6,7 +6,8 @@ import ray
 import ray.tune as tune
 from modals.setup import create_hparams, create_parser
 from modals.trainer import TSeriesModelTrainer
-from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES,EXP_TEST_NAMES
+from modals.operation_tseries import TS_OPS_NAMES,ECG_OPS_NAMES,TS_ADD_NAMES,MAG_TEST_NAMES,NOMAG_TEST_NAMES,EXP_TEST_NAMES \
+    ,ECG_NOISE_DICT,ECG_NOISE_MAG,ECG_NOISE_NOMAG
 from ray.tune.schedulers import PopulationBasedTraining,ASHAScheduler
 from ray.tune.integration.wandb import WandbTrainableMixin
 from ray.tune.schedulers import PopulationBasedTrainingReplay
@@ -184,7 +185,7 @@ def search():
             num_samples=1, #grid search no need
             )
     elif 'search' in FLAGS.fix_policy: #test over all transfroms
-        if 'fixmag-' in FLAGS.fix_policy:
+        if 'fixmag-' in FLAGS.fix_policy: #Time series
             len_m = len(hparams['rand_m'])
             fix_policy = hparams['fix_policy'].split('-')[1]
             hparams['fix_policy'] = fix_policy
@@ -193,6 +194,16 @@ def search():
             len_m = len(hparams['rand_m'])
             hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+        elif 'ecgnomag' in FLAGS.fix_policy:
+            hparams['fix_policy'] = tune.grid_search(ECG_NOISE_NOMAG)
+            hparams['rand_m'] = 0.5
+            hparams['augselect'] = 'ecg_noise'
+            len_m = 1
+        elif 'ecg' in FLAGS.fix_policy:
+            len_m = len(hparams['rand_m'])
+            hparams['fix_policy'] = tune.grid_search(ECG_NOISE_MAG)
+            hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
+            hparams['augselect'] = 'ecg_noise'
         elif 'exp' in FLAGS.fix_policy:
             hparams['num_m'] = FLAGS.num_m
             num_m = hparams['num_m']

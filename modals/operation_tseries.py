@@ -739,8 +739,15 @@ ECG_NOISE_LIST = [
         (High_pass, 0, 1),  # 14
         (Low_pass, 0, 1),  # 15
         (IIR_notch, 0, 1),  # 16
+        (Sigmoid_compress, 0, 1) # may have some bug
         ]
 ECG_NOISE_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in ECG_NOISE_LIST}
+ECG_NOISE_MAG = ["Amplifying","Baseline_wander","dropout","random_time_mask",
+    "add_gaussian_noise","Line_noise","Scaling","Time_shift","random_time_saturation",]
+ECG_NOISE_NOMAG = ["chest_leads_shuffle","channel_dropout","Lead_reversal",
+    "Band_pass","Gaussian_blur","High_pass","Low_pass","IIR_notch",
+    "Sigmoid_compress", #some bug
+]
 
 AUGMENT_DICT = {fn.__name__: (fn, v1, v2) for fn, v1, v2 in TS_AUGMENT_LIST+ECG_AUGMENT_LIST+TS_ADD_LIST+TS_EXP_LIST+INFO_EXP_LIST}
 selopt = ['cut','paste']
@@ -814,10 +821,14 @@ class RandAugment:
         self.n = n
         self.m = m      # [0, 1]
         self.augment_list = TS_AUGMENT_LIST
+        self.aug_dict = None
         if 'tsadd' in augselect:
             print('Augmentation add TS_ADD_LIST')
             self.augment_list += TS_ADD_LIST
-        if 'ecg' in augselect:
+        if 'ecg_noise' in augselect:
+            self.ops_names = ECG_NOISE_LIST.copy()
+            self.aug_dict = ECG_NOISE_DICT
+        elif 'ecg' in augselect:
             print('Augmentation add ECG_AUGMENT_LIST')
             self.augment_list += ECG_AUGMENT_LIST
         self.augment_ids = [i for i in range(len(self.augment_list))]

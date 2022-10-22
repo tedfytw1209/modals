@@ -11,7 +11,7 @@ from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
 from modals.datasets import EDFX,PTBXL,Chapman,WISDM,ICBEB,Georgia
-from modals.operation_tseries import ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment,BeatAugment
+from modals.operation_tseries import ECG_NOISE_DICT, ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment,BeatAugment
 from sklearn.preprocessing import StandardScaler
 
 def save_txt_dataset(dataset, path):
@@ -104,7 +104,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
         multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,
-        beat_aug=False,info_region=None, rd_seed=None, test_augment=False, fold_assign=[]):
+        beat_aug=False,info_region=None, rd_seed=None, test_augment=False, fold_assign=[],augselect=None):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -131,6 +131,9 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         ValueError(f'Invalid dataset name={dataset_name}')
     dataset_Hz = dataset_func.Hz
     #rand augment !!! have bug when not using default split
+    aug_set = None
+    if augselect=='ecg_noise':
+        aug_set = ECG_NOISE_DICT
     train_transfrom = []
     class_wise_transfrom = []
     if randaug_dic.get('randaug',False):
@@ -165,7 +168,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             train_transfrom.extend([
                 ToTensor(),
                 TransfromAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
-                rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz)
+                rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz,aug_dict=aug_set)
             ])
     
     if test_augment:
