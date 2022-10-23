@@ -190,15 +190,15 @@ def search():
             fix_policy = hparams['fix_policy'].split('-')[1]
             hparams['fix_policy'] = fix_policy
             hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
-        elif 'mag' in FLAGS.fix_policy:
-            len_m = len(hparams['rand_m'])
-            hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
-            hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
-        elif 'ecgnomag' in FLAGS.fix_policy:
+        elif 'ecgnom' in FLAGS.fix_policy:
             hparams['fix_policy'] = tune.grid_search(ECG_NOISE_NOMAG)
             hparams['rand_m'] = 0.5
             hparams['augselect'] = 'ecg_noise'
             len_m = 1
+        elif 'mag' in FLAGS.fix_policy:
+            len_m = len(hparams['rand_m'])
+            hparams['fix_policy'] = tune.grid_search(MAG_TEST_NAMES)
+            hparams['rand_m'] = tune.grid_search(hparams['rand_m'])
         elif 'ecg' in FLAGS.fix_policy:
             len_m = len(hparams['rand_m'])
             hparams['fix_policy'] = tune.grid_search(ECG_NOISE_MAG)
