@@ -134,6 +134,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     aug_set = None
     if augselect=='ecg_noise':
         aug_set = ECG_NOISE_DICT
+    print('Aug set: ',aug_set)
     train_transfrom = []
     class_wise_transfrom = []
     if randaug_dic.get('randaug',False):
