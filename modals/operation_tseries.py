@@ -763,7 +763,7 @@ GOOD_ECG_LIST = [
         (random_time_saturation, 0, 5),  # 11
         (High_pass, 0, 1),  # 14
         (Low_pass, 0, 1),  # 15
-        (Sigmoid_compress, 0, 1) # may have some bug
+        (Sigmoid_compress, 0, 1), # may have some bug
         (fft_surrogate, 0, 1),  # 2
         (random_time_mask, 0, 1),  # 5 impl
         (random_bandstop, 0, 2),  # 7
@@ -807,6 +807,7 @@ def get_augment(name,aug_dict=None):
 
 def apply_augment(img, name, level, rd_seed=None,sfreq=100,seq_len=None,aug_dict=None):
     augment_fn, low, high = get_augment(name,aug_dict=aug_dict)
+    print(name, augment_fn, low, high)
     assert 0 <= level
     assert level <= 1
     #change tseries signal from (len,channel) to (batch,channel,len)
@@ -901,6 +902,7 @@ class TransfromAugment:
         select_names = self.rng.choice(self.names, size=self.n)
         for name in select_names:
             augment = get_augment(name,aug_dict=self.aug_dict)
+            print(augment)
             use_op = self.rng.random() < self.p
             if use_op:
                 op, minval, maxval = augment

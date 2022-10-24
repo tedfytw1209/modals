@@ -182,6 +182,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     
     #split
     if (not default_split or dataset_name=='chapman') and len(fold_assign)==0: #chapman didn't have default split now!!!
+        #!!!bug when use transfrom
         dataset = dataset_func(dataroot,multilabel=multilabel,**kwargs)
         total = len(dataset)
         random.seed(0) #!!!
@@ -192,12 +193,13 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             valid = Subset(dataset,rd_idxs[int(total*test_size):int(total*(test_size+valid_size/10))])
             train_idx = rd_idxs[int(total*(test_size+valid_size/10)):]
             train_idx = train_idx[:int(len(train_idx)*subtrain_ratio)]
-            train = Subset(dataset,train_idx)
+            dataset_tr = dataset_func(dataroot,multilabel=multilabel,augmentations=train_transfrom,**kwargs) #!tmp fix
+            train = Subset(dataset_tr,train_idx)
     elif len(fold_assign)==3: #train,valid,test
         #dataset raw
-        train = dataset_func(dataroot,mode=fold_assign[0],multilabel=multilabel,**kwargs)
-        valid = dataset_func(dataroot,mode=fold_assign[1],multilabel=multilabel,**kwargs)
-        test = dataset_func(dataroot,mode=fold_assign[2],multilabel=multilabel,**kwargs)
+        train = dataset_func(dataroot,mode=fold_assign[0],multilabel=multilabel,augmentations=train_transfrom,**kwargs)
+        valid = dataset_func(dataroot,mode=fold_assign[1],multilabel=multilabel,augmentations=valid_transfrom,**kwargs)
+        test = dataset_func(dataroot,mode=fold_assign[2],multilabel=multilabel,augmentations=test_transfrom,**kwargs)
         #preprocess !!!
         ss = StandardScaler()
         ss = train.fit_preprocess(ss)
@@ -213,7 +215,8 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             sub_tr_idx, valid_idx, test_idx = split_info[2],split_info[3],split_info[4]
             test = Subset(dataset,test_idx)
             valid = Subset(dataset,valid_idx)
-            train = Subset(dataset,sub_tr_idx)
+            dataset_tr = dataset_func(dataroot,multilabel=multilabel,augmentations=train_transfrom,**kwargs) #!tmp fix
+            train = Subset(dataset_tr,sub_tr_idx)
         else:
             train = dataset_func(dataroot,mode='train',multilabel=multilabel,augmentations=train_transfrom,**kwargs)
             valid = dataset_func(dataroot,mode='valid',multilabel=multilabel,augmentations=valid_transfrom,**kwargs)
