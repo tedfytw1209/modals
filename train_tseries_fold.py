@@ -42,7 +42,10 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         if self._iteration==self.config['num_epochs']-1:
             step_dic.update(self.result_valid_dic)
             step_dic.update(self.result_test_dic)
-        wandb.log(step_dic)
+            wandb.log(step_dic)
+            wandb.finish()
+        else:
+            wandb.log(step_dic)
         call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}
         return call_back_dic
 
