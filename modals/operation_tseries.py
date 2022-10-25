@@ -902,7 +902,6 @@ class TransfromAugment:
         select_names = self.rng.choice(self.names, size=self.n)
         for name in select_names:
             augment = get_augment(name,aug_dict=self.aug_dict)
-            print(augment)
             use_op = self.rng.random() < self.p
             if use_op:
                 op, minval, maxval = augment
