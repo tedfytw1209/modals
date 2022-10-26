@@ -171,7 +171,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
                 TransfromAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
                 rd_seed=rd_seed,p=randaug_dic['aug_p'],sfreq=dataset_Hz,aug_dict=aug_set)
             ])
-    
+    print('Train transfrom: ',train_transfrom)
     if test_augment:
         print('Using valid/test transfrom, just for experiment')
         valid_transfrom = train_transfrom
