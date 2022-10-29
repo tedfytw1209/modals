@@ -848,20 +848,21 @@ class RandAugment:
     def __init__(self, n, m, rd_seed=None,augselect='',sfreq=100):
         self.n = n
         self.m = m      # [0, 1]
-        self.augment_list = TS_AUGMENT_LIST
+        self.augment_list = TS_AUGMENT_LIST.copy()
         self.aug_dict = None
         if 'tsadd' in augselect:
             print('Augmentation add TS_ADD_LIST')
-            self.augment_list += TS_ADD_LIST
+            self.augment_list += TS_ADD_LIST.copy()
         if 'ecg_noise' in augselect:
             self.ops_names = ECG_NOISE_LIST.copy()
             self.aug_dict = ECG_NOISE_DICT
         elif 'ecg' in augselect:
             print('Augmentation add ECG_AUGMENT_LIST')
-            self.augment_list += ECG_AUGMENT_LIST
+            self.augment_list += ECG_AUGMENT_LIST.copy()
         self.augment_ids = [i for i in range(len(self.augment_list))]
         self.rng = check_random_state(rd_seed)
         self.sfreq = sfreq
+        print(f'Using RandAug {self.augment_list}, m={m}, n={n}')
     def __call__(self, img, seq_len=None):
         #print(img.shape)
         max_seq_len , channel = img.shape

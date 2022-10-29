@@ -28,9 +28,12 @@ def create_parser(mode):
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs')
     parser.add_argument('--lr', type=float, default=0.1, help='learning rate')
     parser.add_argument('--wd', type=float, default=0.0005,  help='weight decay')
+    parser.add_argument('--grad_clip', type=float, default=5.0,  help='grad clip')
+    parser.add_argument('--seed', type=int, default=42, help='seed')
     parser.add_argument('--bs', type=int, default=100, help='batch size')
     parser.add_argument('--gpu_device',  type=str, default='cuda:0')
     parser.add_argument('--multilabel',  action='store_true', help='otherwise use normal classification')
+    parser.add_argument('--notwarmup', action='store_true', default=False, help='default using warmup as adaaug')
 
     parser.add_argument('--save_model', action='store_true',default=False, help='save model')
     parser.add_argument('--checkpoint_freq', type=int, default=50, help='Checkpoint frequency.')
@@ -111,7 +114,9 @@ def create_hparams(mode, FLAGS):
         'save_model': FLAGS.save_model,
         'batch_size': FLAGS.bs,
         'multilabel': FLAGS.multilabel,
-        'gradient_clipping_by_global_norm': 1.0,
+        'gradient_clipping_by_global_norm': FLAGS.grad_clip, #10/29 add
+        'seed': FLAGS.seed, #10/29 add
+        'notwarmup': FLAGS.notwarmup,
         'mixup': FLAGS.mixup,
         'alpha': FLAGS.alpha,
         'lr': FLAGS.lr,

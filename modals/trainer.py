@@ -13,6 +13,7 @@ from networks.resnet1d import resnet1d_wang
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
+from warmup_scheduler import GradualWarmupScheduler
 import numpy as np
 from sklearn.metrics import average_precision_score,roc_auc_score
 from utility import mixup_criterion, mixup_data, mAP_cw, AUROC_cw
@@ -133,9 +134,19 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
     print(f'=> {model_name}')
     print(f'embedding=> {z_size}')
     count_parameters(net)
+    print(net)
 
     return net, z_size, model_name
 
+def reproducibility(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.autograd.set_detect_anomaly(True)
 
 class Discriminator(nn.Module):
     def __init__(self, z_size):
@@ -487,6 +498,8 @@ class TSeriesModelTrainer(TextModelTrainer):
     def __init__(self, hparams, name=''):
         self.hparams = hparams
         print(hparams)
+        #random seed setting
+        reproducibility(hparams['seed'])
         #wandb.config.update(hparams)
         if name:
             self.name = name
@@ -509,7 +522,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             fix_policy = [fix_policy]
         self.fix_policy = fix_policy
         self.info_region = hparams.get('info_region',None)
-        print('Trainer get info region:',self.info_region)
+        #print('Trainer get info region:',self.info_region)
         self.beat_aug = hparams.get('beat_aug',False)
         #kfold or not
         train_val_test_folds = []
@@ -530,7 +543,6 @@ class TSeriesModelTrainer(TextModelTrainer):
                 else:
                     train_val_test_folds[0].append(curr_fold)
             print('Train/Valid/Test fold split ',train_val_test_folds)
-        random.seed(0)
         self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_ts_dataloaders(
             hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'],
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
@@ -538,7 +550,6 @@ class TSeriesModelTrainer(TextModelTrainer):
             fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region, beat_aug=self.beat_aug,
             fold_assign=train_val_test_folds ,augselect=hparams['augselect']
             )
-        random.seed()
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
         #model
@@ -557,6 +568,18 @@ class TSeriesModelTrainer(TextModelTrainer):
         if hparams['mode'] in ['train', 'search']:
             self.optimizer = optim.AdamW(self.net.parameters(), lr=self.hparams['lr'], weight_decay=self.hparams['wd']) #follow ptbxl batchmark
             self.scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.hparams['lr'], epochs = self.hparams['num_epochs'], steps_per_epoch = len(self.train_loader))
+            #10/29 warmup add
+            if not hparams['notwarmup']:
+                print('Using warmup scheduler as AdaAug')
+                m, e = 2,3
+                self.scheduler = GradualWarmupScheduler( #paper not mention!!!
+                    self.optimizer,
+                    multiplier=m,
+                    total_epoch=e,
+                    after_scheduler=self.scheduler)
+            else:
+                print('Not using warmup scheduler')
+            self.grad_clip = hparams['gradient_clipping_by_global_norm']
             self.loss_dict = {'train': [], 'valid': []}
             if hparams['use_modals']:
                 print("\n=> ### Policy ###")
@@ -674,7 +697,7 @@ class TSeriesModelTrainer(TextModelTrainer):
 
             self.optimizer.zero_grad()
             loss.backward()  # Backward Propagation
-            clip_grad_norm_(self.net.parameters(), 1.0)
+            clip_grad_norm_(self.net.parameters(), self.grad_clip)
             self.optimizer.step()  # Optimizer update
             self.scheduler.step()
 
@@ -702,7 +725,7 @@ class TSeriesModelTrainer(TextModelTrainer):
                 else:
                     correct += (predicted == labels).sum().item()
                 for t, p in zip(labels.view(-1), predicted.view(-1)):
-                        confusion_matrix[t.long(), p.long()] += 1
+                    confusion_matrix[t.long(), p.long()] += 1
             else:
                 predicted = torch.sigmoid(outputs).cpu().detach()
                 if torch.any(torch.isnan(predicted)):
@@ -722,7 +745,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         
         if not self.multilabel:
             perfrom = 100 * correct/total
-            perfrom_cw = 100 * confusion_matrix.diag()/confusion_matrix.sum(1)
+            perfrom_cw = 100 * confusion_matrix.diag()/(confusion_matrix.sum(1)+1e-9)
         else:
             targets_np = torch.cat(targets).numpy()
             preds_np = torch.cat(preds).numpy()
@@ -810,7 +833,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         
         if not self.multilabel:
             perfrom = 100 * correct/total
-            perfrom_cw = 100 * confusion_matrix.diag() / (confusion_matrix.sum(1)+1e-12)
+            perfrom_cw = 100 * confusion_matrix.diag() / (confusion_matrix.sum(1)+1e-9)
         else:
             targets_np = torch.cat(targets).numpy()
             preds_np = torch.cat(preds).numpy()
