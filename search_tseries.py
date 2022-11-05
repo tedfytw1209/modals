@@ -158,7 +158,7 @@ def search():
             config=hparams,
             local_dir=FLAGS.ray_dir,
             num_samples=FLAGS.num_samples*repeat_times,
-            max_concurrent_trials=FLAGS.num_samples*repeat_times,
+            #max_concurrent_trials=FLAGS.num_samples*repeat_times,
             )
     elif FLAGS.randaug: #randaug search tune.grid_search from rand_m*rand_n
         total_grid = len(hparams['rand_m']) * len(hparams['rand_n'])
