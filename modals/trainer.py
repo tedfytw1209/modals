@@ -569,7 +569,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             self.optimizer = optim.AdamW(self.net.parameters(), lr=self.hparams['lr'], weight_decay=self.hparams['wd']) #follow ptbxl batchmark
             self.scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.hparams['lr'], epochs = self.hparams['num_epochs'], steps_per_epoch = len(self.train_loader))
             #10/29 warmup add
-            if not hparams['notwarmup']:
+            if not hparams['notwarmup'] and hparams['mode']=='train':
                 print('Using warmup scheduler as AdaAug')
                 m, e = 2,3
                 self.scheduler = GradualWarmupScheduler( #paper not mention!!!
