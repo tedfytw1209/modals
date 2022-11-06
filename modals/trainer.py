@@ -15,6 +15,7 @@ from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
 from warmup_scheduler import GradualWarmupScheduler
 import numpy as np
+import pandas as pd
 from sklearn.metrics import average_precision_score,roc_auc_score
 from utility import mixup_criterion, mixup_data, mAP_cw, AUROC_cw
 
@@ -558,8 +559,11 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(self.device)
         self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
         self.net = self.net.to(self.device)
+        self.start_epoch = 0
+        self.epoch = hparams['num_epochs']
         if hparams.get('restore',None) is not None:
             start_epoch, _ = self.load_model(hparams['restore'])
+            self.start_epoch = hparams['num_epochs'] #tmp
 
         if self.multilabel:
             self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
@@ -618,9 +622,13 @@ class TSeriesModelTrainer(TextModelTrainer):
                     self.metric_loss = OnlineTripletLoss(
                         margin, SemihardNegativeTripletSelector(margin))
     
-    def _train(self, cur_epoch, trail_id):
-        self.net.train()
-        self.net.training = True
+    def _train(self, cur_epoch, trail_id, training=True):
+        if training:
+            self.net.train()
+            self.net.training = True
+        else:
+            self.net.eval()
+            self.net.training = False
         '''self.scheduler = lr_scheduler.CosineAnnealingLR(
             self.optimizer, len(self.train_loader))  # cosine learning rate'''
         #follow ptbxl benchmark !!!
@@ -696,10 +704,11 @@ class TSeriesModelTrainer(TextModelTrainer):
                 loss += g_loss
 
             self.optimizer.zero_grad()
-            loss.backward()  # Backward Propagation
-            clip_grad_norm_(self.net.parameters(), self.grad_clip)
-            self.optimizer.step()  # Optimizer update
-            self.scheduler.step()
+            if training:
+                loss.backward()  # Backward Propagation
+                clip_grad_norm_(self.net.parameters(), self.grad_clip)
+                self.optimizer.step()  # Optimizer update
+                self.scheduler.step()
 
             if self.hparams['enforce_prior']:
                 # Discriminator update
@@ -830,13 +839,17 @@ class TSeriesModelTrainer(TextModelTrainer):
                 targets.append(labels.cpu().detach().long())
                 
                 torch.cuda.empty_cache()
-        
+        #prediction output
+        output_dic = {}
+        targets_np = torch.cat(targets).numpy()
+        preds_np = torch.cat(preds).numpy()
+        output_dic[f'{mode}_target'] = targets_np
+        output_dic[f'{mode}_predict'] = preds_np
+        #class-wise
         if not self.multilabel:
             perfrom = 100 * correct/total
             perfrom_cw = 100 * confusion_matrix.diag() / (confusion_matrix.sum(1)+1e-9)
         else:
-            targets_np = torch.cat(targets).numpy()
-            preds_np = torch.cat(preds).numpy()
             perfrom_cw = AUROC_cw(targets_np,preds_np)
             perfrom = perfrom_cw.mean()
         epoch_loss = test_loss / len(data_loader)
@@ -858,7 +871,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         for i,e_c in enumerate(perfrom_cw):
             out_dic[f'{mode}_{ptype}_c{i}'] = e_c
 
-        return perfrom, epoch_loss, out_dic
+        return perfrom, epoch_loss, out_dic, output_dic
 
     def run_model(self, epoch, trail_id):
         if self.hparams['use_modals']:
@@ -868,18 +881,26 @@ class TSeriesModelTrainer(TextModelTrainer):
             except Exception as e:
                 print(e)
                 print('tmp fix')
+        #restore setting
+        cur_epoch = self.start_epoch + epoch
+        if cur_epoch > self.epoch:
+            return 0.0, 0.0 , 0.0
+        elif cur_epoch==self.epoch:
+            print('Evaluating Train/Valid/Test dataset')
+            training = False
+        else:
+            training = True
 
-        train_acc, tl, train_dic = self._train(epoch, trail_id)
+        train_acc, tl, train_dic = self._train(epoch, trail_id,training=training)
         self.loss_dict['train'].append(tl)
-
         if self.hparams['valid_size'] > 0:
-            val_acc, vl,val_dic = self._test(epoch, trail_id, mode='valid')
+            val_acc, vl,val_dic,val_output_dic = self._test(epoch, trail_id, mode='valid')
             self.loss_dict['valid'].append(vl)
             train_dic.update(val_dic)
         else:
             val_acc = 0.0
 
-        return train_acc, val_acc, train_dic
+        return train_acc, val_acc, train_dic, val_output_dic
     #change augment
     def change_augment(self,new_m):
         #not good code !!!
@@ -925,4 +946,31 @@ class TSeriesModelTrainer(TextModelTrainer):
                     'scheduler': self.scheduler.state_dict()}, path)
 
         print(f'=> saved the model {self.file_name} to {path}')
+        return path
+    #for pred
+    def save_pred(self, target, pred, ckpt_dir, title=''):
+        if self.hparams.get('base_path',''):
+            ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt_dir)
+        add_word = ''
+        if self.hparams.get('kfold',-1)>=0:
+            test_fold_idx = self.hparams['kfold']
+            add_word += f'_fold{test_fold_idx}'
+        if self.fix_policy:
+            rand_m = self.hparams.get('rand_m',0)
+            add_word += f'_{self.fix_policy}{rand_m}'
+        path = os.path.join(
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}{title}')
+        if not os.path.exists(ckpt_dir):
+            os.makedirs(ckpt_dir)
+
+        col_names = ['target','predict']
+        if len(target.shape)>1 and target.shape[1]>1: #multilabel
+            col_names = ['target_'+str(i) for i in range(target.shape[1])] + ['predict_'+str(i) for i in range(target.shape[1])]
+        else:
+            target = target.reshape((-1,1))
+            pred = pred.reshape((-1,1))
+        out_np = np.concatenate((target,pred),axis=1)
+        out_data = pd.DataFrame(out_np,columns=col_names)
+        out_data.to_csv(path)
+        print(f'=> saved the prediction {self.file_name} to {path}')
         return path

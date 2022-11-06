@@ -29,8 +29,8 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
             wandb.config.update(self.config)
         print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
         step_dic = {f'epoch':self._iteration}
-        train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
-        test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
+        train_acc, valid_acc, info_dict, val_output_dic = self.trainer.run_model(self._iteration, self.trial_id)
+        test_acc, test_loss, info_dict_test, test_output_dic = self.trainer._test(self._iteration, self.trial_id, mode='test')
         if valid_acc>self.best_valid_acc:
             self.best_valid_acc = valid_acc
             if self.config['save_model']:

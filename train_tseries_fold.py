@@ -24,13 +24,14 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
     def step(self):#use step replace _train
         if self._iteration==0:
             wandb.config.update(self.config)
-        print(f'Starting Ray ID {self.trial_id} Iteration: {self._iteration}')
-        step_dic = {f'epoch':self._iteration}
-        train_acc, valid_acc, info_dict = self.trainer.run_model(self._iteration, self.trial_id)
-        test_acc, test_loss, info_dict_test = self.trainer._test(self._iteration, self.trial_id, mode='test')
+        cur_epoch = self.trainer.start_epoch + self._iteration
+        print(f'Starting Ray ID {self.trial_id} Iteration: {cur_epoch}')
+        step_dic = {f'epoch':cur_epoch}
+        train_acc, valid_acc, info_dict, val_output_dic = self.trainer.run_model(self._iteration, self.trial_id)
+        test_acc, test_loss, info_dict_test, test_output_dic = self.trainer._test(self._iteration, self.trial_id, mode='test')
         if valid_acc>self.best_valid_acc:
             self.best_valid_acc = valid_acc
-            if self.config['save_model']:
+            if self.config['save_model'] and not self.config['restore']:
                 self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
             self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
             self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
@@ -39,9 +40,15 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         step_dic.update(info_dict)
         step_dic.update(info_dict_test)
         #if last epoch
-        if self._iteration==self.config['num_epochs']-1:
+        if cur_epoch==self.config['num_epochs']-1 or cur_epoch==self.config['num_epochs']:
             step_dic.update(self.result_valid_dic)
             step_dic.update(self.result_test_dic)
+            #output pred
+            self.trainer.save_pred(val_output_dic['valid_target'],val_output_dic['valid_predict'],
+                        self.config['checkpoint_dir'],title='valid_prediction')
+            self.trainer.save_pred(test_output_dic['test_target'],test_output_dic['test_predict'],
+                        self.config['checkpoint_dir'],title='test_prediction')
+            #wandb log
             wandb.log(step_dic)
             wandb.finish()
         else:
