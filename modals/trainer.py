@@ -935,10 +935,11 @@ class TSeriesModelTrainer(TextModelTrainer):
         if self.fix_policy:
             rand_m = self.hparams.get('rand_m',0)
             add_word += f'_{self.fix_policy}{rand_m}'
-        path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',f'{sub_word}_{title}')
-        if not os.path.exists(ckpt_dir):
-            os.makedirs(ckpt_dir)
+        dir_path = os.path.join(
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}')
+        path = os.path.join(dir_path,f'{sub_word}_{title}')
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
 
         torch.save({'state': self.net.state_dict(),
                     'epoch': epoch,
@@ -960,10 +961,11 @@ class TSeriesModelTrainer(TextModelTrainer):
         if self.fix_policy:
             rand_m = self.hparams.get('rand_m',0)
             add_word += f'_{self.fix_policy}{rand_m}'
-        path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',f'{sub_word}_{title}')
-        if not os.path.exists(ckpt_dir):
-            os.makedirs(ckpt_dir)
+        dir_path = os.path.join(
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}')
+        path = os.path.join(dir_path,f'{sub_word}_{title}')
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
 
         col_names = ['target','predict']
         if len(target.shape)>1 and target.shape[1]>1: #multilabel
