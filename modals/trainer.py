@@ -549,7 +549,7 @@ class TSeriesModelTrainer(TextModelTrainer):
             subtrain_ratio=hparams['subtrain_ratio'], dataroot=hparams['dataset_dir'],multilabel=self.multilabel,
             default_split=hparams['default_split'],labelgroup=hparams['labelgroup'],randaug_dic=self.randaug_dic,
             fix_policy_list=fix_policy,class_wise=hparams['class_wise'],info_region=self.info_region, beat_aug=self.beat_aug,
-            fold_assign=train_val_test_folds ,augselect=hparams['augselect']
+            fold_assign=train_val_test_folds ,augselect=hparams['augselect'],num_workers=hparams['num_workers'],
             )
         self.device = torch.device(
             hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')

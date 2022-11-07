@@ -104,7 +104,7 @@ def get_text_dataloaders(dataset_name, valid_size, batch_size, subtrain_ratio=1.
 
 def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, subtrain_ratio=1.0, dataroot='.data', 
         multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,
-        beat_aug=False,info_region=None, rd_seed=None, test_augment=False, fold_assign=[],augselect=None):
+        beat_aug=False,info_region=None, rd_seed=None, test_augment=False, fold_assign=[],augselect=None,num_workers=0):
     kwargs = {}
     #choose dataset
     if dataset_name == 'ptbxl':
@@ -229,9 +229,9 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     classes = [i for i in range(dataset.num_class)]
     input_channel = dataset.channel
 
-    train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True,drop_last=True)#8/19
-    valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
-    test_loader = DataLoader(test,batch_size=batch_size, shuffle=True,num_workers=4,pin_memory=True)
+    train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True,drop_last=True)#8/19
+    valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True)
+    test_loader = DataLoader(test,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True)
 
     print('### Dataset ###')
     print(f'=>{dataset_name}')

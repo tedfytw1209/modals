@@ -22,7 +22,7 @@ def create_parser(mode):
     parser.add_argument('--valid_size', type=int, default=500, help='Number of validation examples.')
     parser.add_argument('--subtrain_ratio', type=float, default=1.0, help='Ratio of sub training set')
     parser.add_argument('--default_split', action='store_true', help='use dataset deault split')
-
+    parser.add_argument('--num_workers', type=int, default=2, help="num_workers")
     ## Model and training setting
     parser.add_argument('--model_name',default='wrn')
     parser.add_argument('--epochs', type=int, default=1, help='Number of epochs')
@@ -111,6 +111,7 @@ def create_hparams(mode, FLAGS):
         'dataset_name': FLAGS.dataset,
         'dataset_dir': FLAGS.data_dir,
         'checkpoint_dir': FLAGS.checkpoint_dir,
+        'num_workers': FLAGS.num_workers,
         'save_model': FLAGS.save_model,
         'batch_size': FLAGS.bs,
         'multilabel': FLAGS.multilabel,
