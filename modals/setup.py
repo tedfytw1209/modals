@@ -14,7 +14,7 @@ def create_parser(mode):
     parser = argparse.ArgumentParser()
 
     ## Datasetting
-    parser.add_argument('--base_path', type=str, default='', help='base path of code')
+    parser.add_argument('--base_path', type=str, default='/mnt/data2/teddy/modals-main/', help='base path of code')
     parser.add_argument('--data_dir', default=DATA_DIR, help='Directory where dataset is located.')
     parser.add_argument('--dataset', default='trec')
     parser.add_argument('--labelgroup', default='')
