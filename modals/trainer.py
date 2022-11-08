@@ -975,6 +975,6 @@ class TSeriesModelTrainer(TextModelTrainer):
             pred = pred.reshape((-1,1))
         out_np = np.concatenate((target,pred),axis=1)
         out_data = pd.DataFrame(out_np,columns=col_names)
-        out_data.to_csv(path)
+        out_data.to_csv(path+'.csv')
         print(f'=> saved the prediction {self.file_name} to {path}')
         return path
