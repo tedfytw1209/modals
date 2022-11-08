@@ -978,3 +978,22 @@ class TSeriesModelTrainer(TextModelTrainer):
         out_data.to_csv(path+'.csv')
         print(f'=> saved the prediction {self.file_name} to {path}')
         return path
+    def load_model(self, ckpt):
+        # load the checkpoint.
+        title = 'best'
+        if self.hparams.get('base_path',''):
+            ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt)
+        dir_path = ckpt_dir
+        path = os.path.join(dir_path,title)
+        checkpoint = torch.load(path, map_location=torch.device('cpu'))
+        print('Model keys: ',[n for n in checkpoint.keys()])
+        if '.pth' in path:
+            self.net.load_state_dict(checkpoint['model'])
+        else:
+            self.net.load_state_dict(checkpoint['state'])
+        self.loss_dict = checkpoint['loss']
+        if self.hparams['mode'] != 'test':
+            self.optimizer.load_state_dict(checkpoint['optimizer'])
+            self.scheduler.load_state_dict(checkpoint['scheduler'])
+        print(f'=> loaded checkpoint of {self.file_name} from {path}')
+        return checkpoint['epoch'], checkpoint['loss']
