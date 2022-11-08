@@ -936,8 +936,8 @@ class TSeriesModelTrainer(TextModelTrainer):
             rand_m = self.hparams.get('rand_m',0)
             add_word += f'_{self.fix_policy}{rand_m}'
         dir_path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}')
-        path = os.path.join(dir_path,f'{sub_word}_{title}')
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word)
+        path = os.path.join(dir_path,title)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
@@ -962,8 +962,8 @@ class TSeriesModelTrainer(TextModelTrainer):
             rand_m = self.hparams.get('rand_m',0)
             add_word += f'_{self.fix_policy}{rand_m}'
         dir_path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}')
-        path = os.path.join(dir_path,f'{sub_word}_{title}')
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word)
+        path = os.path.join(dir_path,title)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
