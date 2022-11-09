@@ -559,11 +559,6 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(self.device)
         self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
         self.net = self.net.to(self.device)
-        self.start_epoch = 0
-        self.epoch = hparams['num_epochs']
-        if hparams.get('restore',None) is not None:
-            start_epoch, _ = self.load_model(hparams['restore'])
-            self.start_epoch = hparams['num_epochs'] #tmp
 
         if self.multilabel:
             self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
@@ -621,6 +616,12 @@ class TSeriesModelTrainer(TextModelTrainer):
                 elif metric_loss == 'semihard':
                     self.metric_loss = OnlineTripletLoss(
                         margin, SemihardNegativeTripletSelector(margin))
+        # load model
+        self.start_epoch = 0
+        self.epoch = hparams['num_epochs']
+        if hparams.get('restore',None) is not None:
+            start_epoch, _ = self.load_model(hparams['restore'])
+            self.start_epoch = hparams['num_epochs'] #tmp
     
     def _train(self, cur_epoch, trail_id, training=True):
         if training:
