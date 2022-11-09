@@ -981,9 +981,13 @@ class TSeriesModelTrainer(TextModelTrainer):
     def load_model(self, ckpt):
         # load the checkpoint.
         title = 'best'
+        sub_word = ''
+        if self.hparams.get('kfold',-1)>=0:
+            test_fold_idx = self.hparams['kfold']
+            sub_word = f'fold{test_fold_idx}'
         if self.hparams.get('base_path',''):
             ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt)
-        dir_path = ckpt_dir
+        dir_path = os.path.join(ckpt_dir,sub_word)
         path = os.path.join(dir_path,title)
         checkpoint = torch.load(path, map_location=torch.device('cpu'))
         print('Model keys: ',[n for n in checkpoint.keys()])
