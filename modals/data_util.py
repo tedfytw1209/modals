@@ -230,8 +230,8 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
     input_channel = dataset.channel
 
     train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True,drop_last=True)#8/19
-    valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True)
-    test_loader = DataLoader(test,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True)
+    valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=False,num_workers=num_workers,pin_memory=True)#11/9 fix
+    test_loader = DataLoader(test,batch_size=batch_size, shuffle=False,num_workers=num_workers,pin_memory=True)#11/9 #fix
 
     print('### Dataset ###')
     print(f'=>{dataset_name}')
