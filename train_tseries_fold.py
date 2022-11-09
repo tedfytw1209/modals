@@ -25,6 +25,7 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         if self._iteration==0:
             wandb.config.update(self.config)
         cur_epoch = self.trainer.start_epoch + self._iteration
+        train_acc, valid_acc, test_acc = 0.0,0.0,0.0
         if cur_epoch<=self.config['num_epochs']:
             print(f'Starting Ray ID {self.trial_id} Iteration: {cur_epoch}')
             step_dic = {f'epoch':cur_epoch}
