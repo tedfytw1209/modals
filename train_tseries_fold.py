@@ -25,20 +25,21 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         if self._iteration==0:
             wandb.config.update(self.config)
         cur_epoch = self.trainer.start_epoch + self._iteration
-        print(f'Starting Ray ID {self.trial_id} Iteration: {cur_epoch}')
-        step_dic = {f'epoch':cur_epoch}
-        train_acc, valid_acc, info_dict, val_output_dic = self.trainer.run_model(self._iteration, self.trial_id)
-        test_acc, test_loss, info_dict_test, test_output_dic = self.trainer._test(self._iteration, self.trial_id, mode='test')
-        if valid_acc>self.best_valid_acc:
-            self.best_valid_acc = valid_acc
-            if self.config['save_model'] and not self.config['restore']:
-                self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
-            self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
-            self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
-            step_dic['best_valid_acc_avg'] = valid_acc
-            step_dic['best_test_acc_avg'] = test_acc
-        step_dic.update(info_dict)
-        step_dic.update(info_dict_test)
+        if cur_epoch<=self.config['num_epochs']:
+            print(f'Starting Ray ID {self.trial_id} Iteration: {cur_epoch}')
+            step_dic = {f'epoch':cur_epoch}
+            train_acc, valid_acc, info_dict, val_output_dic = self.trainer.run_model(self._iteration, self.trial_id)
+            test_acc, test_loss, info_dict_test, test_output_dic = self.trainer._test(self._iteration, self.trial_id, mode='test')
+            if valid_acc>self.best_valid_acc:
+                self.best_valid_acc = valid_acc
+                if self.config['save_model'] and not self.config['restore']:
+                    self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
+                self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
+                self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
+                step_dic['best_valid_acc_avg'] = valid_acc
+                step_dic['best_test_acc_avg'] = test_acc
+            step_dic.update(info_dict)
+            step_dic.update(info_dict_test)
         #if last epoch
         if cur_epoch==self.config['num_epochs']-1 or cur_epoch==self.config['num_epochs']:
             step_dic.update(self.result_valid_dic)
@@ -51,6 +52,8 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
             #wandb log
             wandb.log(step_dic)
             wandb.finish()
+        elif cur_epoch>self.config['num_epochs']:
+            print('Training finish, pass epoch')
         else:
             wandb.log(step_dic)
         call_back_dic = {'train_acc': train_acc, 'valid_acc': valid_acc, 'test_acc': test_acc}

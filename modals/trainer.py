@@ -885,7 +885,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         #restore setting
         cur_epoch = self.start_epoch + epoch
         if cur_epoch > self.epoch:
-            return 0.0, 0.0 , 0.0
+            return 0.0, 0.0 , {}, {}
         elif cur_epoch==self.epoch:
             print('Evaluating Train/Valid/Test dataset')
             training = False
