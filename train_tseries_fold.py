@@ -19,6 +19,7 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         os.environ['WANDB_START_METHOD'] = 'thread'
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
+        self.result_output_dic = {}
         self.best_valid_acc = 0
 
     def step(self):#use step replace _train
@@ -39,6 +40,8 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
                 self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
                 step_dic['best_valid_acc_avg'] = valid_acc
                 step_dic['best_test_acc_avg'] = test_acc
+                self.result_output_dic.update(val_output_dic)
+                self.result_output_dic.update(test_output_dic)
             step_dic.update(info_dict)
             step_dic.update(info_dict_test)
         #if last epoch
@@ -46,9 +49,9 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
             step_dic.update(self.result_valid_dic)
             step_dic.update(self.result_test_dic)
             #output pred
-            self.trainer.save_pred(val_output_dic['valid_target'],val_output_dic['valid_predict'],
+            self.trainer.save_pred(self.result_output_dic['valid_target'],self.result_output_dic['valid_predict'],
                         self.config['checkpoint_dir'],title='valid_prediction')
-            self.trainer.save_pred(test_output_dic['test_target'],test_output_dic['test_predict'],
+            self.trainer.save_pred(self.result_output_dic['test_target'],self.result_output_dic['test_predict'],
                         self.config['checkpoint_dir'],title='test_prediction')
             #wandb log
             wandb.log(step_dic)
