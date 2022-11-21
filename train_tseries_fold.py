@@ -12,11 +12,11 @@ import os
 
 now_str = time.strftime("%Y%m%d-%H%M%S")
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
-os.environ['WANDB_START_METHOD'] = 'thread'
+#os.environ['WANDB_START_METHOD'] = 'thread'
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
     def setup(self, *args): #use new setup replace _setup
-        os.environ['WANDB_START_METHOD'] = 'thread'
+        #os.environ['WANDB_START_METHOD'] = 'thread'
         self.trainer = TSeriesModelTrainer(self.config)
         self.result_valid_dic, self.result_test_dic = {}, {}
         self.result_output_dic = {}

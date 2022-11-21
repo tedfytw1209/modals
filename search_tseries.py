@@ -15,7 +15,7 @@ from ray.tune.suggest import Repeater
 import time
 import os
 
-os.environ['WANDB_START_METHOD'] = 'thread'
+#os.environ['WANDB_START_METHOD'] = 'thread'
 API_KEY = 'cb4c412d9f47cd551e38050ced659b0c58926986'
 
 class RayModel(WandbTrainableMixin, tune.Trainable):
