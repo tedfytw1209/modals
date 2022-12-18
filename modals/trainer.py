@@ -925,7 +925,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         self.valid_loader.dataset.augmentations = new_augment
         self.test_loader.dataset.augmentations = new_augment
     # for benchmark
-    def save_checkpoint(self, ckpt_dir, epoch, title=''):
+    def save_checkpoint(self, ckpt_dir, epoch, title='',trail_id=None):
         if self.hparams.get('base_path',''):
             ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt_dir)
         add_word = ''
@@ -936,9 +936,15 @@ class TSeriesModelTrainer(TextModelTrainer):
         if self.fix_policy:
             rand_m = self.hparams.get('rand_m',0)
             add_word += f'_{self.fix_policy}{rand_m}'
+        if self.hparams['use_modals']:
+            trail_word = str(trail_id)
+        else:
+            trail_word = ''
         dir_path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word)
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',trail_word,sub_word)
         path = os.path.join(dir_path,title)
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
 
@@ -951,7 +957,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(f'=> saved the model {self.file_name} to {path}')
         return path
     #for pred
-    def save_pred(self, target, pred, ckpt_dir, title=''):
+    def save_pred(self, target, pred, ckpt_dir, title='',trail_id=None):
         if self.hparams.get('base_path',''):
             ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt_dir)
         add_word = ''
@@ -962,12 +968,18 @@ class TSeriesModelTrainer(TextModelTrainer):
         if self.fix_policy:
             rand_m = self.hparams.get('rand_m',0)
             add_word += f'_{self.fix_policy}{rand_m}'
+        if self.hparams['use_modals']:
+            trail_word = str(trail_id)
+        else:
+            trail_word = ''
         dir_path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word)
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',trail_word,sub_word)
         path = os.path.join(dir_path,title)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
-
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+            
         col_names = ['target','predict']
         if len(target.shape)>1 and target.shape[1]>1: #multilabel
             col_names = ['target_'+str(i) for i in range(target.shape[1])] + ['predict_'+str(i) for i in range(target.shape[1])]

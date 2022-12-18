@@ -35,7 +35,7 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         if valid_acc>self.best_valid_acc:
             self.best_valid_acc = valid_acc
             if self.config['save_model']:
-                self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best')
+                self.trainer.save_checkpoint(self.config['checkpoint_dir'], self._iteration,title='best',trail_id=self.trial_id)
             self.result_valid_dic = {f'result_{k}': info_dict[k] for k in info_dict.keys()}
             self.result_test_dic = {f'result_{k}': info_dict_test[k] for k in info_dict_test.keys()}
             step_dic['best_valid_acc_avg'] = valid_acc
@@ -50,9 +50,9 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
             step_dic.update(self.result_test_dic)
             #output pred
             self.trainer.save_pred(self.result_output_dic['valid_target'],self.result_output_dic['valid_predict'],
-                        self.config['checkpoint_dir'],title='valid_prediction')
+                        self.config['checkpoint_dir'],title='valid_prediction',trail_id=self.trial_id)
             self.trainer.save_pred(self.result_output_dic['test_target'],self.result_output_dic['test_predict'],
-                        self.config['checkpoint_dir'],title='test_prediction')
+                        self.config['checkpoint_dir'],title='test_prediction',trail_id=self.trial_id)
             #wandb log
             wandb.log(step_dic)
             wandb.finish()
