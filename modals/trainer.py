@@ -281,7 +281,6 @@ class TextModelTrainer(object):
 
             # if self.hparams['dataset_name'] == 'sst2':
             labels -= 1  # because I binarized the data
-
             seed_features = self.net.extract_features(inputs, seq_lens)
             features = seed_features
 
@@ -359,7 +358,7 @@ class TextModelTrainer(object):
             # Accuracy
             _, predicted = torch.max(outputs.data, 1)
             total += labels.size(0)
-            if self.hparams['mixup']:
+            if self.hparams['mixup']: #how this acc means?
                 correct += (lam * predicted.eq(targets_a.data).cpu().sum().float()
                             + (1 - lam) * predicted.eq(targets_b.data).cpu().sum().float())
             else:
