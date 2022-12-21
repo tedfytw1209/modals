@@ -68,7 +68,7 @@ class RayModel(WandbTrainableMixin, tune.Trainable):
         return path
 
     def _restore(self, checkpoint_path):
-        self.trainer.load_model(checkpoint_path)
+        self.trainer.load_model(checkpoint_path,trail_id=self.trial_id)
 
     def reset_config(self, new_config):
         self.config = new_config
