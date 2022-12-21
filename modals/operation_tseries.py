@@ -19,7 +19,7 @@ from mne.channels import make_standard_montage
 import matplotlib.pyplot as plt
 from ecgdetectors import Detectors
 from scipy.interpolate import CubicSpline
-from operations_ecg import *
+from modals.operations_ecg import *
 from numpy.random import default_rng
 from numpy.random import RandomState
 
