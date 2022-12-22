@@ -708,7 +708,11 @@ class TSeriesModelTrainer(TextModelTrainer):
                 loss.backward()  # Backward Propagation
                 clip_grad_norm_(self.net.parameters(), self.grad_clip)
                 self.optimizer.step()  # Optimizer update
-                self.scheduler.step()
+                try: #tmp
+                    self.scheduler.step()
+                except Exception as e:
+                    print('Exception:')
+                    print(e)
 
             if self.hparams['enforce_prior']:
                 # Discriminator update
@@ -991,24 +995,8 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(f'=> saved the prediction {self.file_name} to {path}')
         return path
     def load_model(self, ckpt,trail_id=None):
-        # load the checkpoint.
-        title = 'best'
-        sub_word = ''
-        if self.hparams.get('kfold',-1)>=0:
-            test_fold_idx = self.hparams['kfold']
-            sub_word = f'fold{test_fold_idx}'
-        add_word = ''
-        if self.fix_policy:
-            rand_m = self.hparams.get('rand_m',0)
-            add_word += f'_{self.fix_policy}{rand_m}'
-        if self.hparams['use_modals']:
-            trail_word = str(trail_id)
-        else:
-            trail_word = ''
-        if self.hparams.get('base_path',''):
-            ckpt_dir = os.path.join(self.hparams.get('base_path',''),ckpt)
-        dir_path = os.path.join(ckpt_dir,self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word,trail_word)
-        path = os.path.join(dir_path,title)
+        path = ckpt
+        print(f'=> loaded checkpoint of {self.file_name} from {path}')
         checkpoint = torch.load(path, map_location=torch.device('cpu'))
         print('Model keys: ',[n for n in checkpoint.keys()])
         if '.pth' in path:
@@ -1019,7 +1007,6 @@ class TSeriesModelTrainer(TextModelTrainer):
         if self.hparams['mode'] != 'test':
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             self.scheduler.load_state_dict(checkpoint['scheduler'])
-        print(f'=> loaded checkpoint of {self.file_name} from {path}')
         return checkpoint['epoch'], checkpoint['loss']
     # for ray
     def save_model(self, ckpt_dir, epoch):
