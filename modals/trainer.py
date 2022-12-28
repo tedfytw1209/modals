@@ -941,7 +941,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             trail_word = ''
         dir_path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',trail_word,sub_word)
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word,trail_word)
         path = os.path.join(dir_path,title)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
@@ -973,7 +973,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         else:
             trail_word = ''
         dir_path = os.path.join(
-            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',trail_word,sub_word)
+            ckpt_dir, self.hparams['dataset_name'], f'{self.name}{add_word}_{self.file_name}',sub_word,trail_word)
         path = os.path.join(dir_path,title)
         if not os.path.exists(dir_path):
             os.makedirs(dir_path)
@@ -991,6 +991,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         out_data.to_csv(path+'.csv')
         print(f'=> saved the prediction {self.file_name} to {path}')
         return path
+    # for ray
     def load_model(self, ckpt):
         # load the checkpoint.
         title = 'best'
@@ -1014,3 +1015,19 @@ class TSeriesModelTrainer(TextModelTrainer):
             self.scheduler.load_state_dict(checkpoint['scheduler'])
         print(f'=> loaded checkpoint of {self.file_name} from {path}')
         return checkpoint['epoch'], checkpoint['loss']
+    def save_model(self, ckpt_dir, epoch):
+        # save the checkpoint.
+        print(self.file_name)
+        print(ckpt_dir)
+        path = os.path.join(ckpt_dir, self.file_name)
+        if not os.path.exists(ckpt_dir):
+            os.makedirs(ckpt_dir)
+
+        torch.save({'state': self.net.state_dict(),
+                    'epoch': epoch,
+                    'loss': self.loss_dict,
+                    'optimizer': self.optimizer.state_dict(),
+                    'scheduler': self.scheduler.state_dict()}, path)
+
+        print(f'=> saved the model {self.file_name} to {path}')
+        return path
