@@ -994,6 +994,7 @@ class TSeriesModelTrainer(TextModelTrainer):
     # for ray
     def load_model(self, ckpt,trail_id=None):
         # load the checkpoint.
+        print(f'=> loading checkpoint of {self.file_name} from {ckpt}')
         title = 'best'
         sub_word = ''
         if self.hparams.get('kfold',-1)>=0:
@@ -1021,8 +1022,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         return checkpoint['epoch'], checkpoint['loss']
     def save_model(self, ckpt_dir, epoch):
         # save the checkpoint.
-        print(self.file_name)
-        print(ckpt_dir)
+        print(f'=> saved the model {self.file_name} to {ckpt_dir}')
         path = os.path.join(ckpt_dir, self.file_name)
         if not os.path.exists(ckpt_dir):
             os.makedirs(ckpt_dir)
