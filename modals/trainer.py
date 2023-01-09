@@ -8,6 +8,7 @@ import torch.optim as optim
 from networks.blstm import BiLSTM,LSTM
 from networks.LSTM import LSTM_ecg,LSTM_ptb
 from networks.LSTM_attention import LSTM_attention
+from networks.MF_transformer import MF_Transformer
 from networks.Sleep_stager import SleepStagerChambon2018
 from networks.resnet1d import resnet1d_wang
 from torch.autograd import Variable
@@ -94,6 +95,19 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'fc_drop': 0.5}
         net = LSTM_ptb(config)
         z_size = n_hidden
+    elif model_name == 'mf_trans':
+        n_hidden = 256
+        model_config = {
+                  'n_hidden': n_hidden,
+                  'n_layers': 5,
+                  'n_head': 8, #tmp params
+                  'n_dff': n_hidden*2, #tmp params
+                  'b_dir': False,
+                  'concat_pool': True,
+                  'rnn_drop': 0.1,
+                  'fc_drop': 0.5}
+        net = MF_Transformer
+        z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'lstm_atten':
         n_hidden = 512
         config = {

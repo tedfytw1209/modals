@@ -106,6 +106,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         multilabel=False, default_split=False,labelgroup='',randaug_dic={},fix_policy_list=[],class_wise=False,
         beat_aug=False,info_region=None, rd_seed=None, test_augment=False, fold_assign=[],augselect=None,num_workers=0):
     kwargs = {}
+    down_sample = False
     #choose dataset
     if dataset_name == 'ptbxl':
         dataset_func = PTBXL
@@ -119,6 +120,11 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset_func = Chapman
         if labelgroup:
             kwargs['labelgroup']=labelgroup
+    elif dataset_name == 'chapmands':
+        down_sample = True
+        dataset_func = Chapman
+        if labelgroup:
+            kwargs['labelgroup']=labelgroup
     elif dataset_name == 'icbeb':
         dataset_func = ICBEB
         if labelgroup:
@@ -129,7 +135,10 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             kwargs['labelgroup']=labelgroup
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
-    dataset_Hz = dataset_func.Hz
+    if down_sample: #for down sample
+        dataset_Hz = 100
+    else:
+        dataset_Hz = dataset_func.Hz
     #rand augment !!! have bug when not using default split
     aug_set = None
     if augselect=='ecg_noise':
@@ -200,6 +209,13 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         train = dataset_func(dataroot,mode=fold_assign[0],multilabel=multilabel,augmentations=train_transfrom,**kwargs)
         valid = dataset_func(dataroot,mode=fold_assign[1],multilabel=multilabel,augmentations=valid_transfrom,**kwargs)
         test = dataset_func(dataroot,mode=fold_assign[2],multilabel=multilabel,augmentations=test_transfrom,**kwargs)
+        #down sample to 100 Hz if needed
+        if down_sample:
+            print(f'Before down sample {train.input_data.shape}')
+            train.down_sample(100)
+            valid.down_sample(100)
+            test.down_sample(100)
+            print(f'After down sample {train.input_data.shape}')
         #preprocess !!!
         ss = StandardScaler()
         print(f'Before dataset {train.input_data.shape} sample 0:')
