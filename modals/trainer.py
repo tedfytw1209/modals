@@ -42,7 +42,7 @@ def count_parameters(model):
     print(f' |Trainable parameters: {temp}')
 
 
-def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
+def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz=500):
     net = None
     if model_name == 'blstm':
         n_hidden = 256
@@ -97,7 +97,10 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
         z_size = n_hidden
     elif model_name == 'mf_trans':
         n_hidden = 256
-        model_config = {
+        config = {'n_output':n_class,'n_embed':vocab,'rnn_drop': 0.2,'fc_drop': 0.5,'max_len':max_len,'hz':hz}
+        add_model_config = {}
+        add_model_config['seg_config'] = {'seg_ways':'fix', 'rr_method':'pan'}
+        mode_config = {
                   'n_hidden': n_hidden,
                   'n_layers': 5,
                   'n_head': 8, #tmp params
@@ -106,7 +109,9 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset=''):
                   'concat_pool': True,
                   'rnn_drop': 0.1,
                   'fc_drop': 0.5}
-        net = MF_Transformer
+        config.update(mode_config)
+        config.update(add_model_config)
+        net = MF_Transformer(config)
         z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'lstm_atten':
         n_hidden = 512
@@ -570,7 +575,18 @@ class TSeriesModelTrainer(TextModelTrainer):
         print()
         print('### Device ###')
         print(self.device)
-        self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes))
+        #tmp
+        if hparams['dataset_name']=='chapman':
+            self.hz = 500
+            self.max_len = 5000
+        elif hparams['dataset_name']=='icbeb':
+            self.hz = 100
+            self.max_len = 6000
+        else:
+            self.hz = 100
+            self.max_len = 1000
+
+        self.net, self.z_size, self.file_name = build_model(hparams['model_name'], self.vocab, len(self.classes),max_len=self.max_len,hz=self.hz)
         self.net = self.net.to(self.device)
 
         if self.multilabel:
