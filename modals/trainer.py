@@ -10,7 +10,10 @@ from networks.LSTM import LSTM_ecg,LSTM_ptb
 from networks.LSTM_attention import LSTM_attention
 from networks.MF_transformer import MF_Transformer
 from networks.Sleep_stager import SleepStagerChambon2018
-from networks.resnet1d import resnet1d_wang
+from networks.resnet1d import resnet1d_wang,resnet1d101
+from networks.xresnet1d import xresnet1d101
+from networks.basic_conv1d import make_fcn_wang
+from networks.inception1d import make_inception1d
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
@@ -136,6 +139,52 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
                   'ps_head': 0.5}
         net = resnet1d_wang(config)
         z_size = n_hidden * 2 #concat adaptive pool
+    elif model_name == 'resnet101':
+        n_hidden = 128
+        config = {
+                  'input_channels': vocab,
+                  'inplanes': n_hidden,
+                  'num_classes': n_class,
+                  'kernel_size': 5,
+                  'lin_ftrs_head': [n_hidden], #8/17 add
+                  'ps_head': 0.5}
+        model_config = {}
+        net = resnet1d101(config)
+    elif model_name == 'xresnet101':
+        #conf_fastai_xresnet1d101 = {'modelname':'fastai_xresnet1d101', 'modeltype':'fastai_model', 'parameters':dict()}
+        #elif(self.name.startswith("fastai_xresnet1d101")):
+        #    model = xresnet1d101(num_classes=num_classes,input_channels=self.input_channels,kernel_size=self.kernel_size,ps_head=self.ps_head,lin_ftrs_head=self.lin_ftrs_head)
+        n_hidden = 128
+        config = {
+                  'input_channels': vocab,
+                  #'inplanes': n_hidden,
+                  'num_classes': n_class,
+                  'kernel_size': 5,
+                  'lin_ftrs_head': [n_hidden], #8/17 add
+                  'ps_head': 0.5}
+        model_config = {}
+        net = xresnet1d101(config)
+    elif model_name == 'inception':
+        n_hidden = 128
+        config = {
+                  'input_channels': vocab,
+                  #'inplanes': n_hidden,
+                  'num_classes': n_class,
+                  'kernel_size': 5 * 8, # 8 * self.kernel size 
+                  'lin_ftrs_head': [n_hidden], #8/17 add
+                  'ps_head': 0.5}
+        model_config = {}
+        net = make_inception1d(config)
+    elif model_name == 'fcn_wang':
+        n_hidden = 128
+        config = {
+                  'input_channels': vocab,
+                  #'inplanes': n_hidden,
+                  'num_classes': n_class,
+                  'lin_ftrs_head': [n_hidden], #8/17 add
+                  'ps_head': 0.5}
+        model_config = {}
+        net = make_fcn_wang(config)
     elif model_name == 'cnn_sleep': #
         #n_hidden = 512
         config = {
