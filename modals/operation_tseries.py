@@ -851,7 +851,7 @@ def le(a,b):
 class ToTensor:
     def __init__(self) -> None:
         pass
-    def __call__(self, img):
+    def __call__(self, img, **kwargs):
         return torch.tensor(img).float()
 
 class RandAugment:
