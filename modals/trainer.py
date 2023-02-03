@@ -150,6 +150,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
                   'ps_head': 0.5}
         model_config = {}
         net = resnet1d101(config)
+        z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'xresnet101':
         #conf_fastai_xresnet1d101 = {'modelname':'fastai_xresnet1d101', 'modeltype':'fastai_model', 'parameters':dict()}
         #elif(self.name.startswith("fastai_xresnet1d101")):
@@ -164,6 +165,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
                   'ps_head': 0.5}
         model_config = {}
         net = xresnet1d101(config)
+        z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'inception':
         n_hidden = 128
         config = {
@@ -175,6 +177,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
                   'ps_head': 0.5}
         model_config = {}
         net = make_inception1d(config)
+        z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'fcn_wang':
         n_hidden = 128
         config = {
@@ -185,6 +188,7 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
                   'ps_head': 0.5}
         model_config = {}
         net = make_fcn_wang(config)
+        z_size = n_hidden * 2 #concat adaptive pool
     elif model_name == 'cnn_sleep': #
         #n_hidden = 512
         config = {
