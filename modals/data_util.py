@@ -116,7 +116,7 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
         dataset_func = WISDM
     elif dataset_name == 'edfx':
         dataset_func = EDFX
-        kwargs['n_folds'] = 10
+        kwargs['max_folds'] = 10
     elif dataset_name == 'chapman':
         dataset_func = Chapman
         if labelgroup:
