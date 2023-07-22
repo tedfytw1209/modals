@@ -533,8 +533,8 @@ def Translation(X, magnitude, random_state=None, *args, **kwargs):
 #scaling voltage
 def scaling(x,rng, sigma=0.1):
     # https://arxiv.org/pdf/1706.00527.pdf
-    factor = rng.normal(loc=1., scale=sigma, size=(x.shape[0],x.shape[1])) #diff batch&channel
-    return np.multiply(x, factor[:,:,np.newaxis])
+    factor = rng.normal(loc=1., scale=sigma, size=(x.shape[0],x.shape[2])) #diff batch&channel
+    return np.multiply(x, factor[:,np.newaxis,:])
 def Scaling(X, magnitude, random_state=None, *args, **kwargs):
     rng = check_random_state(random_state)
     x = X.detach().cpu().numpy()
