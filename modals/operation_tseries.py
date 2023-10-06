@@ -918,7 +918,7 @@ class TransfromAugment:
         self.sfreq = sfreq
         self.aug_dict = aug_dict
     def __call__(self, img, seq_len=None, **_kwargs): #ignore other args
-        print(self.names, img.shape)
+        #print(self.names, img.shape)
         max_seq_len , channel = img.shape #(channel, seq_len)
         if seq_len==None:
             seq_len = max_seq_len

@@ -227,7 +227,7 @@ def search():
             print('num_m:', hparams['num_m'])
             print('Final rand_m:', hparams['rand_m'])
             #make grid
-            if len(hparams['rand_m'])==1:
+            if not isinstance(hparams['rand_m'], list):
                 final_m = [hparams['rand_m'] for i in range(total_aug)]
             elif len(hparams['rand_m'])==total_aug:
                 final_m = hparams['rand_m']
