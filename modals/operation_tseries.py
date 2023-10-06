@@ -693,16 +693,20 @@ NOMAG_TEST_NAMES = [
     'Window_Slicing_Circle',
 ]
 TS_EXP_LIST = [
-    (exp_time_mask, 0, 100),
+    (exp_time_mask, 0, 100), #up to all drop
+    (channel_dropout, 0, 1),  # up to all drop
     (exp_bandstop, 0, 48), #sample freq=100, bandstop=48 because of notch
-    (exp_freq_shift, 0, 10), #sample freq=100
-    (exp_add_gaussian_noise, 0, 1),  # noise up to std
+    (Window_Warp, 0,0.5), #window warp up to half
+    (exp_add_gaussian_noise, 0, 2),  # noise up to 2*std
+    (Magnitude_Warp, 0, 2),  #magnitude warp up to 2*std
 ]
 EXP_TEST_NAMES =[
     'exp_time_mask',
+    'channel_dropout',
     'exp_bandstop',
-    'exp_freq_shift',
+    'Window_Warp',
     'exp_add_gaussian_noise',
+    'Magnitude_Warp',
 ]
 INFO_EXP_LIST = [
     (info_time_mask, 0, 100),
@@ -914,7 +918,7 @@ class TransfromAugment:
         self.sfreq = sfreq
         self.aug_dict = aug_dict
     def __call__(self, img, seq_len=None, **_kwargs): #ignore other args
-        #print(img.shape)
+        print(self.names, img.shape)
         max_seq_len , channel = img.shape #(channel, seq_len)
         if seq_len==None:
             seq_len = max_seq_len
