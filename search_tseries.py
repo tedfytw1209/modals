@@ -244,7 +244,6 @@ def search():
             #hparams['rand_m'] = resolve_randm
             hparams['rand_m'] = tune.sample_from(resolve_randm)
             #printout
-            
             len_m = 1
         else:
             hparams['fix_policy'] = tune.grid_search(NOMAG_TEST_NAMES)
