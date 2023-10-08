@@ -922,7 +922,7 @@ class TransfromAugment:
         max_seq_len , channel = img.shape #(channel, seq_len)
         if seq_len==None:
             seq_len = max_seq_len
-        img = img.permute(1,0).view(1,channel,max_seq_len) #(seq,ch)
+        img = img.clone().permute(1,0).view(1,channel,max_seq_len) #(seq,ch)
         select_names = self.rng.choice(self.names, size=self.n)
         for name in select_names:
             augment = get_augment(name,aug_dict=self.aug_dict)
@@ -2332,7 +2332,7 @@ if __name__ == '__main__':
     label = sample[2]
     print(t.shape)
     print(x.shape)
-    test_ops = TS_OPS_NAMES
+    test_ops = EXP_TEST_NAMES
     '''rng = check_random_state(None)
     rd_start = rng.uniform(0, 2*np.pi, size=(1, 1))
     rd_hz = 1
@@ -2345,9 +2345,9 @@ if __name__ == '__main__':
     #
     plot_line(t,x,title='identity')
     for name in test_ops:
-        for m in [0.5]:
+        for m in [0.98]:
             x_tensor = torch.from_numpy(x).float().clone()
-            trans_aug = TransfromAugment([name],m=m,n=1,p=1,aug_dict=LEADS_AUGMENT_DICT)
+            trans_aug = TransfromAugment([name],m=m,n=1,p=1,aug_dict=AUGMENT_DICT)
             x_aug = trans_aug(x_tensor).numpy()
             print(x_aug.mean(0))
             print(x_aug.shape)
