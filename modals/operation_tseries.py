@@ -19,7 +19,7 @@ from mne.channels import make_standard_montage
 import matplotlib.pyplot as plt
 from ecgdetectors import Detectors
 from scipy.interpolate import CubicSpline
-from modals.operations_ecg import *
+from operations_ecg import *
 from numpy.random import default_rng
 from numpy.random import RandomState
 
@@ -2320,7 +2320,7 @@ if __name__ == '__main__':
     fold_9_list = [folds[:8],[folds[8]],[folds[9]]]
     print(fold_9_list)
     #dataset = PTBXL(dataset_path='../CWDA_research/CWDA/datasets/Datasets/ptbxl-dataset',mode=fold_9_list,labelgroup='all',multilabel=False)
-    dataset = PTBXL(dataset_path='../Dataset/ptbxl-dataset',mode=fold_9_list[0],labelgroup='all',multilabel=False)
+    dataset = PTBXL(dataset_path='../../ptbxl-dataset',mode=fold_9_list[0],labelgroup='subdiagnostic',multilabel=False)
     print(dataset[0])
     print(dataset[0][0].shape)
     sample = dataset[0]
