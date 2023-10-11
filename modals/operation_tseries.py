@@ -541,6 +541,12 @@ def Scaling(X, magnitude, random_state=None, *args, **kwargs):
     new_x = scaling(x,rng,magnitude)
     new_x = torch.from_numpy(new_x).float()
     return new_x
+def exp_Scaling(X, magnitude, random_state=None, *args, **kwargs):
+    rng = check_random_state(random_state)
+    x = X.detach().cpu().numpy()
+    new_x = scaling(x,rng,magnitude)
+    new_x = torch.from_numpy(new_x).float()
+    return new_x
 #Reflection already have sign_flip
 #Adding Noise: low=>baseline wander
 def magnitude_warp(x, rng, sigma=0.2, knot=4): #ref (batch, time_steps, channel)
@@ -696,17 +702,19 @@ TS_EXP_LIST = [
     (exp_time_mask, 0, 100), #up to all drop
     (channel_dropout, 0, 1),  # up to all drop
     (exp_bandstop, 0, 48), #sample freq=100, bandstop=48 because of notch
-    (Window_Warp, 0,0.5), #window warp up to half
-    (exp_add_gaussian_noise, 0, 2),  # noise up to 2*std
-    (Magnitude_Warp, 0, 2),  #magnitude warp up to 2*std
+    #(Window_Warp, 0,0.5), #window warp up to half
+    (exp_add_gaussian_noise, 0, 3),  # noise up to 3*std
+    #(Magnitude_Warp, 0, 2),  #magnitude warp up to 3*std
+    (exp_Scaling, 0, 3),  # scale up to 3*std
 ]
 EXP_TEST_NAMES =[
     'exp_time_mask',
     'channel_dropout',
     'exp_bandstop',
-    'Window_Warp',
+    #'Window_Warp',
     'exp_add_gaussian_noise',
-    'Magnitude_Warp',
+    #'Magnitude_Warp',
+    "exp_Scaling",
 ]
 INFO_EXP_LIST = [
     (info_time_mask, 0, 100),
