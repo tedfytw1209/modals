@@ -564,6 +564,12 @@ def Magnitude_Warp(X, magnitude, random_state=None, *args, **kwargs):
     new_x = magnitude_warp(x,rng,magnitude)
     new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
     return new_x
+def exp_Magnitude_Warp(X, magnitude, random_state=None, *args, **kwargs):
+    rng = check_random_state(random_state)
+    x = X.permute(0,2,1).detach().cpu().numpy()
+    new_x = magnitude_warp(x,rng,magnitude)
+    new_x = torch.from_numpy(new_x).float().permute(0,2,1) #back
+    return new_x
 '''
 Common Time Series Augmentation from
 "https://github.com/uchidalab/time_series_augmentation" and
@@ -704,7 +710,7 @@ TS_EXP_LIST = [
     (exp_bandstop, 0, 48), #sample freq=100, bandstop=48 because of notch
     #(Window_Warp, 0,0.5), #window warp up to half
     (exp_add_gaussian_noise, 0, 3),  # noise up to 3*std
-    #(Magnitude_Warp, 0, 2),  #magnitude warp up to 3*std
+    (exp_Magnitude_Warp, 0, 3),  #magnitude warp up to 3*std
     (exp_Scaling, 0, 3),  # scale up to 3*std
 ]
 EXP_TEST_NAMES =[
