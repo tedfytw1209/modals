@@ -936,7 +936,7 @@ class TransfromAugment:
         max_seq_len , channel = img.shape #(channel, seq_len)
         if seq_len==None:
             seq_len = max_seq_len
-        img = img.clone().permute(1,0).view(1,channel,max_seq_len) #(seq,ch)
+        img = img.permute(1,0).view(1,channel,max_seq_len) #(seq,ch)
         select_names = self.rng.choice(self.names, size=self.n)
         for name in select_names:
             augment = get_augment(name,aug_dict=self.aug_dict)
