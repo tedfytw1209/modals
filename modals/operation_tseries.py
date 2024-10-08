@@ -14,8 +14,6 @@ from torch.fft import fft, ifft
 from torch.nn.functional import dropout2d, pad, one_hot
 from torch.distributions import Normal
 from mne.filter import notch_filter
-from mne.channels.interpolation import _make_interpolation_matrix
-from mne.channels import make_standard_montage
 import matplotlib.pyplot as plt
 from ecgdetectors import Detectors
 from scipy.interpolate import CubicSpline

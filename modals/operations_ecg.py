@@ -16,7 +16,6 @@ from mne.filter import notch_filter
 from mne.channels.interpolation import _make_interpolation_matrix
 from mne.channels import make_standard_montage
 import matplotlib.pyplot as plt
-from ecgdetectors import Detectors
 from scipy.interpolate import CubicSpline
 from scipy.ndimage.interpolation import shift
 from scipy.signal import butter, lfilter, iirnotch
