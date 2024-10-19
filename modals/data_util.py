@@ -112,9 +112,9 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
     classes = [i for i in range(train.num_class)]
     input_channel = train.channel
 
-    train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True,drop_last=True)#8/19
-    valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=False,num_workers=num_workers,pin_memory=True)#11/9 fix
-    test_loader = DataLoader(test,batch_size=batch_size, shuffle=False,num_workers=num_workers,pin_memory=True)#11/9 #fix
+    train_loader = DataLoader(train,batch_size=batch_size, shuffle=True,num_workers=num_workers,pin_memory=True,drop_last=True)
+    valid_loader = DataLoader(valid,batch_size=batch_size, shuffle=False,num_workers=num_workers,pin_memory=True)
+    test_loader = DataLoader(test,batch_size=batch_size, shuffle=False,num_workers=num_workers,pin_memory=True)
 
     print('### Dataset ###')
     print(f'=>{dataset_name}')
