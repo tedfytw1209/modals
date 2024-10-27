@@ -5,12 +5,12 @@ from torch.utils.data import Dataset
 import torch
 
 class MIMICLT(Dataset):
-    def __init__(self, root_dir, mode='train', augmentation=None):
+    def __init__(self, root_dir, mode='train', augmentations=None):
         """
         Args:
             root_dir (string): Directory with all the images and CSV files.
             mode (string): One of 'train', 'val', or 'test' to specify the dataset split.
-            augmentation (callable, optional): Optional augmentation to be applied
+            augmentations (callable, optional): Optional augmentation to be applied
             on a sample.
         """
         #tmp fix
@@ -23,7 +23,7 @@ class MIMICLT(Dataset):
             csv_file = os.path.join(label_root_dir, 'test.csv')
         self.annotations = pd.read_csv(csv_file)
         self.root_dir = root_dir
-        self.augmentation = augmentation
+        self.augmentations = augmentations
 
     def __len__(self):
         return len(self.annotations)
@@ -34,7 +34,7 @@ class MIMICLT(Dataset):
         image = Image.open(img_name).convert('RGB')
         labels = self.annotations.iloc[idx, 6:].values
 
-        if self.augmentation:
-            image = self.augmentation(image)
+        if self.augmentations:
+            image = self.augmentations(image)
 
         return image, labels
