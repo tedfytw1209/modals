@@ -58,10 +58,6 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
                           augselect=None,randaug_dic={},fix_policy_list=[],class_wise=False,info_region=None,rd_seed=None,test_augment=False,
                           num_workers=8):
     #rand augment !!! have bug when not using default split
-    aug_set = None
-    if augselect=='ecg_noise':
-        aug_set = ECG_NOISE_DICT
-    print('Aug set: ',aug_set)
     train_transfrom = []
     class_wise_transfrom = []
     if randaug_dic.get('randaug',False):
@@ -89,7 +85,7 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
             train_transfrom.extend([
                 ToTensor(),
                 TransfromAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
-                rd_seed=rd_seed,p=randaug_dic['aug_p'],aug_dict=aug_set)
+                rd_seed=rd_seed,p=randaug_dic['aug_p'])
             ])
     print('Train transfrom: ',train_transfrom)
     if test_augment:
