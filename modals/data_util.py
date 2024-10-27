@@ -10,7 +10,7 @@ import torchtext.datasets as txtdatasets
 from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
-from modals.datasets import PTBXL,Chapman,WISDM,ICBEB,Georgia
+from modals.datasets import PTBXL,Chapman,WISDM,ICBEB,Georgia,MIMICLT
 from modals.operation_tseries import ECG_NOISE_DICT, ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment,BeatAugment
 from sklearn.preprocessing import StandardScaler
 
@@ -98,6 +98,7 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
     #choose dataset
     dataset_func = None
     if dataset_name == 'mimic_lt':
+        dataset_func = MIMICLT
         train = dataset_func(dataroot,mode='train',augmentations=train_transfrom)
         valid = dataset_func(dataroot,mode='valid',augmentations=valid_transfrom)
         test = dataset_func(dataroot,mode='test',augmentations=test_transfrom)
