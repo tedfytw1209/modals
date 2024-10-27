@@ -10,7 +10,7 @@ import torchtext.datasets as txtdatasets
 from torch.utils.data import Sampler,Subset,DataLoader
 from torchtext.vocab import GloVe
 from modals.setup import EMB_DIR
-from modals.datasets import EDFX,PTBXL,Chapman,WISDM,ICBEB,Georgia
+from modals.datasets import PTBXL,Chapman,WISDM,ICBEB,Georgia
 from modals.operation_tseries import ECG_NOISE_DICT, ToTensor,RandAugment,TransfromAugment,TransfromAugment_classwise,InfoRAugment,BeatAugment
 from sklearn.preprocessing import StandardScaler
 
@@ -180,9 +180,6 @@ def get_ts_dataloaders(dataset_name, valid_size, batch_size,test_size = 0.2, sub
             kwargs['labelgroup']=labelgroup
     elif dataset_name == 'wisdm':
         dataset_func = WISDM
-    elif dataset_name == 'edfx':
-        dataset_func = EDFX
-        kwargs['max_folds'] = 10
     elif dataset_name == 'chapman':
         dataset_func = Chapman
         if labelgroup:
