@@ -4,7 +4,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 import torch
 
-class MIMICLTDataset(Dataset):
+class MIMICLT(Dataset):
     def __init__(self, root_dir, mode='train', augmentation=None):
         """
         Args:
