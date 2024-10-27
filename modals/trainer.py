@@ -14,6 +14,8 @@ from networks.resnet1d import resnet1d_wang,resnet1d101
 from networks.xresnet1d import xresnet1d101
 from networks.basic_conv1d import make_fcn_wang
 from networks.inception1d import make_inception1d
+from networks.resnet import ResNet
+from networks.wideresnet import WideResNet
 from torch.autograd import Variable
 from torch.nn.utils import clip_grad_norm_
 from torch.optim import lr_scheduler
@@ -23,7 +25,7 @@ import pandas as pd
 from sklearn.metrics import average_precision_score,roc_auc_score
 from utility import mixup_criterion, mixup_data, mAP_cw, AUROC_cw
 
-from modals.data_util import get_text_dataloaders,get_ts_dataloaders
+from modals.data_util import get_text_dataloaders,get_ts_dataloaders,get_image_dataloaders
 from modals.policy import PolicyManager, RawPolicy
 
 if torch.cuda.is_available():
@@ -202,6 +204,28 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
         z_size = net.len_last_layer
     else:
         ValueError(f'Invalid model name={model_name}')
+
+    print('\n### Model ###')
+    print(f'=> {model_name}')
+    print(f'embedding=> {z_size}')
+    count_parameters(net)
+    print(net)
+
+    return net, z_size, model_name
+
+def build_img_model(model_name, vocab, n_class, z_size=2):
+    net = None
+    if model_name == 'resnet50':
+        net = ResNet(dataset='imagenet', n_channel=vocab, depth=50, num_classes=n_class, bottleneck=True)
+    elif model_name == 'resnet200':
+        net = ResNet(dataset='imagenet', n_channel=vocab, depth=200, num_classes=n_class, bottleneck=True)
+    elif model_name == 'wresnet40_2':
+        net = WideResNet(40, 2, dropout_rate=0.0, num_classes=n_class)
+    elif model_name == 'wresnet28_10':
+        net = WideResNet(28, 10, dropout_rate=0.0, num_classes=n_class)
+    else:
+        raise NameError('no model named, %s' % model_name)
+    z_size = net.fc.in_features
 
     print('\n### Model ###')
     print(f'=> {model_name}')
@@ -1108,3 +1132,373 @@ class TSeriesModelTrainer(TextModelTrainer):
 
         print(f'=> saved the model {self.file_name} to {path}')
         return path
+    
+class ImageModelTrainer(TextModelTrainer):
+    def __init__(self, hparams, name=''):
+        self.hparams = hparams
+        print(hparams)
+        #random seed setting
+        reproducibility(hparams['seed'])
+        #wandb.config.update(hparams)
+        if name:
+            self.name = name
+        else:
+            self.name = hparams.get('name','')
+        self.multilabel = hparams['multilabel']
+        self.randaug_dic = {'randaug':hparams.get('randaug',False),'rand_n':hparams.get('rand_n',0),
+            'rand_m':hparams.get('rand_m',0),'augselect':hparams.get('augselect',''),'aug_p':hparams.get('aug_p',0.5)}
+        print('Rand Augment: ',self.randaug_dic)
+        fix_policy = hparams['fix_policy']
+        if fix_policy==None:
+            fix_policy = []
+        elif ',' in fix_policy:
+            fix_policy = fix_policy.split(',')
+        else:
+            fix_policy = [fix_policy]
+        self.fix_policy = fix_policy
+        #kfold or not
+        train_val_test_folds = []
+        if hparams['kfold']==10:
+            test_fold_idx = tune.suggest.repeater.TRIAL_INDEX
+        elif hparams['kfold']>=0:
+            test_fold_idx = hparams['kfold']
+        else:
+            test_fold_idx = -1
+        if test_fold_idx>=0:
+            train_val_test_folds = [[],[],[]] #train,valid,test
+            for i in range(10):
+                curr_fold = (i+test_fold_idx)%10 +1 #fold is 1~10
+                if i==0:
+                    train_val_test_folds[2].append(curr_fold)
+                elif i==9:
+                    train_val_test_folds[1].append(curr_fold)
+                else:
+                    train_val_test_folds[0].append(curr_fold)
+            print('Train/Valid/Test fold split ',train_val_test_folds)
+        self.train_loader, self.valid_loader, self.test_loader, self.classes, self.vocab = get_image_dataloaders(
+                        hparams['dataset_name'], valid_size=hparams['valid_size'], batch_size=hparams['batch_size'], dataroot=hparams['dataset_dir'],
+                        augselect=hparams['augselect'],randaug_dic=self.randaug_dic,fix_policy_list=fix_policy,class_wise=hparams['class_wise'],
+                        info_region=None,test_augment=False,num_workers=hparams['num_workers'],rd_seed=hparams['seed'])
+        self.device = torch.device(
+            hparams['gpu_device'] if torch.cuda.is_available() else 'cpu')
+        #model
+        print()
+        print('### Device ###')
+        print(self.device)
+
+        self.net, self.z_size, self.file_name = build_img_model(hparams['model_name'], self.vocab, len(self.classes))
+        self.net = self.net.to(self.device)
+
+        if self.multilabel:
+            self.criterion = nn.BCEWithLogitsLoss(reduction='mean')
+        else:
+            self.criterion = nn.CrossEntropyLoss()
+        if hparams['mode'] in ['train', 'search']:
+            self.optimizer = optim.AdamW(self.net.parameters(), lr=self.hparams['lr'], weight_decay=self.hparams['wd']) #follow ptbxl batchmark
+            self.scheduler = lr_scheduler.OneCycleLR(self.optimizer, max_lr=self.hparams['lr'], epochs = self.hparams['num_epochs'], steps_per_epoch = len(self.train_loader))
+            # warmup add
+            if not hparams['notwarmup'] and hparams['mode']=='train':
+                print('Using warmup scheduler as AdaAug')
+                m, e = 2,3
+                self.scheduler = GradualWarmupScheduler( #paper not mention!!!
+                    self.optimizer,
+                    multiplier=m,
+                    total_epoch=e,
+                    after_scheduler=self.scheduler)
+            else:
+                print('Not using warmup scheduler')
+            self.grad_clip = hparams['gradient_clipping_by_global_norm']
+            self.loss_dict = {'train': [], 'valid': []}
+            if hparams['use_modals']:
+                print("\n=> ### Policy ###")
+                raw_policy = RawPolicy(mode=hparams['mode'], num_epochs=hparams['num_epochs'],
+                                       hp_policy=hparams['hp_policy'], policy_path=hparams['policy_path'])
+                transformations = aug_trans
+                self.pm = PolicyManager(
+                    transformations, raw_policy, len(self.classes), self.device, multilabel=hparams['multilabel'])
+            print("\n### Loss ###")
+            print('Classification Loss')
+            if hparams['mixup']:
+                print('Mixup')
+            if hparams['enforce_prior']:
+                print('Adversarial Loss')
+                self.EPS = 1e-15
+                self.D = Discriminator(self.z_size)
+                self.D = self.D.to(self.device)
+                self.D_optimizer = optim.Adam(self.D.parameters(), lr=0.01, #!follow paper
+                                              weight_decay=hparams['wd'])
+            if hparams['metric_learning']:
+                margin = hparams['metric_margin']
+                metric_loss = hparams["metric_loss"]
+                metric_weight = hparams["metric_weight"]
+                print(
+                    f"Metric Loss (margin: {margin} loss: {metric_loss} weight: {metric_weight})")
+                self.M_optimizer = optim.SGD(
+                    self.net.parameters(), momentum=0.9, lr=1e-3, weight_decay=1e-8)
+                self.metric_weight = hparams['metric_weight']
+                if metric_loss == 'random':
+                    self.metric_loss = OnlineTripletLoss(
+                        margin, RandomNegativeTripletSelector(margin))
+                elif metric_loss == 'hardest':
+                    self.metric_loss = OnlineTripletLoss(
+                        margin, HardestNegativeTripletSelector(margin))
+                elif metric_loss == 'semihard':
+                    self.metric_loss = OnlineTripletLoss(
+                        margin, SemihardNegativeTripletSelector(margin))
+        # load model
+        self.start_epoch = 0
+        self.epoch = hparams['num_epochs']
+        if hparams.get('restore',None) is not None:
+            start_epoch, _ = self.load_model(hparams['restore'])
+            self.start_epoch = hparams['num_epochs'] #tmp
+    
+    def _train(self, cur_epoch, trail_id, training=True):
+        if training:
+            self.net.train()
+            self.net.training = True
+        else:
+            self.net.eval()
+            self.net.training = False
+        #follow ptbxl benchmark !!!
+        train_losses = 0.0
+        clf_losses = 0.0
+        metric_losses = 0.0
+        d_losses = 0.0
+        g_losses = 0.0
+        correct = 0
+        total = 0
+        n_batch = len(self.train_loader)
+        confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
+        preds = []
+        targets = []
+        print(f'\n=> Training Epoch #{cur_epoch}')
+        for batch_idx, batch in enumerate(self.train_loader):
+            inputs, labels = batch[0].float().to(self.device), batch[1].long().to(self.device)
+            seed_features = self.net.extract_features(inputs)
+            features = seed_features
+            if self.hparams['manifold_mixup']:
+                features, targets_a, targets_b, lam = mixup_data(features, labels,
+                                                                 0.2, use_cuda=True)
+                features, targets_a, targets_b = map(Variable, (features,
+                                                                targets_a, targets_b))
+            # apply pba transformation
+            if self.hparams['use_modals']:
+                try:
+                    features = self.pm.apply_policy(
+                        features, labels, cur_epoch, batch_idx, verbose=1).to(self.device)
+                except Exception as e:
+                    print(e)
+                    print('tmp ignore error')
+            outputs = self.net.classify(features)  # Forward Propagation
+            if self.hparams['mixup']:
+                inputs, targets_a, targets_b, lam = mixup_data(outputs, labels,
+                                                               self.hparams['alpha'], use_cuda=True)
+                inputs, targets_a, targets_b = map(Variable, (outputs,
+                                                              targets_a, targets_b))
+            # freeze D
+            if self.hparams['enforce_prior']:
+                for p in self.D.parameters():
+                    p.requires_grad = False
+            # classification loss
+            if self.hparams['mixup'] or self.hparams['manifold_mixup']:
+                c_loss = mixup_criterion(
+                    self.criterion, outputs, targets_a, targets_b, lam)
+            else:
+                if self.multilabel:
+                    c_loss = self.criterion(outputs, labels.float())  # Loss
+                else:
+                    c_loss = self.criterion(outputs, labels.long())  # Loss
+            clf_losses += c_loss.item()
+            # total loss
+            loss = c_loss
+            if self.hparams['metric_learning']:
+                m_loss = self.metric_loss(seed_features, labels)[0]
+                metric_losses += m_loss.item()
+                loss = self.metric_weight * m_loss + \
+                    (1-self.metric_weight) * c_loss
+            train_losses += loss.item()
+
+            if self.hparams['enforce_prior']:
+                # Regularizer update
+                # freeze D
+                for p in self.D.parameters():
+                    p.requires_grad = False
+                self.net.train()
+                d_fake = self.D(features)
+                g_loss = self.hparams['prior_weight'] * \
+                    adverserial_loss(d_fake, self.EPS)
+                g_losses += g_loss.item()
+                loss += g_loss
+
+            self.optimizer.zero_grad()
+            if training:
+                loss.backward()  # Backward Propagation
+                clip_grad_norm_(self.net.parameters(), self.grad_clip)
+                self.optimizer.step()  # Optimizer update
+                try: #tmp
+                    self.scheduler.step()
+                except Exception as e:
+                    print('Exception:')
+                    print(e)
+
+            if self.hparams['enforce_prior']:
+                # Discriminator update
+                for p in self.D.parameters():
+                    p.requires_grad = True
+
+                features = self.net.extract_features(inputs)
+                d_real = self.D(torch.randn(features.size()).to(self.device))
+                d_fake = self.D(F.softmax(features, dim=0))
+                d_loss = discriminator_loss(d_real, d_fake, self.EPS)
+                self.D_optimizer.zero_grad()
+                d_loss.backward()
+                self.D_optimizer.step()
+                d_losses += d_loss.item()
+
+            # Accuracy / AUROC
+            if not self.multilabel:
+                _, predicted = torch.max(outputs.data, 1)
+                total += labels.size(0)
+                if self.hparams['mixup']:
+                    correct += (lam * predicted.eq(targets_a.data).cpu().sum().float()
+                            + (1 - lam) * predicted.eq(targets_b.data).cpu().sum().float())
+                else:
+                    correct += (predicted == labels).sum().item()
+                for t, p in zip(labels.view(-1), predicted.view(-1)):
+                    confusion_matrix[t.long(), p.long()] += 1
+            else:
+                predicted = torch.sigmoid(outputs).cpu().detach()
+                if torch.any(torch.isnan(predicted)):
+                    print('Inputs:', inputs.shape)
+                    print(torch.max(inputs))
+                    print(torch.min(inputs))
+                    print('Representation: ', features.shape)
+                    print(features)
+                    print(torch.min(features))
+                    print('Labels: ', labels.shape)
+                    print(labels)
+                    print(predicted)
+                    print(outputs)
+                    assert False
+            preds.append(predicted)
+            targets.append(labels.cpu().detach())
+        
+        if not self.multilabel:
+            perfrom = 100 * correct/total
+            perfrom_cw = 100 * confusion_matrix.diag()/(confusion_matrix.sum(1)+1e-9)
+        else:
+            targets_np = torch.cat(targets).numpy()
+            preds_np = torch.cat(preds).numpy()
+            try:
+                perfrom = 100 * roc_auc_score(targets_np, preds_np,average='macro')
+            except Exception as e:
+                print('target shape: ',targets_np.shape)
+                print('preds shape: ',preds_np.shape)
+                nan_count = np.sum(np.isnan(preds_np))
+                inf_count = np.sum(np.isinf(preds_np))
+                print('predict nan, inf count: ',nan_count,inf_count)
+                print(np.sum(targets_np,axis=0))
+                print(np.sum(preds_np,axis=0))
+                print(preds_np[np.isnan(preds_np)])
+                raise e
+            perfrom_cw = AUROC_cw(targets_np,preds_np)
+            perfrom = perfrom_cw.mean()
+        epoch_loss = train_losses/n_batch
+        # step
+        step = (cur_epoch-1)*(len(self.train_loader)) + batch_idx
+        total_steps = self.hparams['num_epochs']*len(self.train_loader)
+        #wandb dic
+        out_dic = {}
+        out_dic[f'train_loss'] = epoch_loss
+        out_dic[f'train_clfloss'] = clf_losses/n_batch
+        # logs
+        display = f'| Epoch [{cur_epoch}/{self.hparams["num_epochs"]}]\tIter[{step}/{total_steps}]\tLoss: {epoch_loss:.4f}\tAcc@1/MacromAP: {perfrom:.4f}\tclf_loss: {clf_losses/n_batch:.4f}'
+        if self.hparams['enforce_prior']:
+            display += f'\td_loss: {d_losses/n_batch:.4f}\tg_loss: {g_losses/n_batch:.4f}'
+            out_dic[f'train_d_loss'] = d_losses/n_batch
+            out_dic[f'train_g_loss'] = g_losses/n_batch
+        if self.hparams['metric_learning']:
+            display += f'\tmetric_loss: {metric_losses/n_batch:.4f}'
+            out_dic[f'train_metric_loss'] = metric_losses/n_batch
+        print(display)
+        if self.multilabel:
+            ptype = 'auroc'
+        else:
+            ptype = 'acc'
+        out_dic[f'train_{ptype}_avg'] = perfrom
+        for i,e_c in enumerate(perfrom_cw):
+            out_dic[f'train_{ptype}_c{i}'] = e_c
+
+        return perfrom, epoch_loss, out_dic
+
+    def _test(self, cur_epoch, trail_id, mode):
+        self.net.eval()
+        self.net.training = False
+        correct = 0
+        total = 0
+        test_loss = 0.0
+        if mode == 'train':
+            data_loader = self.train_loader
+        elif mode == 'valid':
+            data_loader = self.valid_loader
+        else:
+            data_loader = self.test_loader
+        confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
+        preds = []
+        targets = []
+        with torch.no_grad():
+            for batch_idx, batch in enumerate(data_loader):
+                inputs, labels = batch[0].float().to(self.device), batch[1].to(self.device)
+
+                outputs = self.net(inputs)
+                if self.multilabel:
+                    loss = self.criterion(outputs, labels.float())  # Loss multilabel
+                else:
+                    loss = self.criterion(outputs, labels.long())  # Loss singlelabel
+                test_loss += loss.item()
+
+                if not self.multilabel:
+                    _, predicted = torch.max(outputs.data, 1)
+                    total += labels.size(0)
+                    correct += (predicted == labels).sum().item()
+                    for t, p in zip(labels.view(-1), predicted.view(-1)):
+                        confusion_matrix[t.long(), p.long()] += 1
+                else:
+                    predicted = torch.sigmoid(outputs.data)
+                preds.append(predicted.cpu().detach())
+                targets.append(labels.cpu().detach().long())
+                
+                torch.cuda.empty_cache()
+        #prediction output
+        output_dic = {}
+        targets_np = torch.cat(targets).numpy()
+        preds_np = torch.cat(preds).numpy()
+        output_dic[f'{mode}_target'] = targets_np
+        output_dic[f'{mode}_predict'] = preds_np
+        #class-wise
+        if not self.multilabel:
+            perfrom = 100 * correct/total
+            perfrom_cw = 100 * confusion_matrix.diag() / (confusion_matrix.sum(1)+1e-9)
+        else:
+            perfrom_cw = AUROC_cw(targets_np,preds_np)
+            perfrom = perfrom_cw.mean()
+        epoch_loss = test_loss / len(data_loader)
+
+        if not self.multilabel:
+            print(f'| ({mode}) Epoch #{cur_epoch}\t Loss: {epoch_loss:.4f}\t Acc@1: {perfrom:.4f}')
+            print(f'class-wise Acc: ','['+', '.join(['%.1f'%e for e in perfrom_cw])+']')
+        else:
+            print(f'| ({mode}) Epoch #{cur_epoch}\t Loss: {epoch_loss:.4f}\t MacroAUROC: {perfrom:.4f}')
+            print(f'class-wise AUROC: ','['+', '.join(['%.1f'%e for e in perfrom_cw])+']')
+        #wandb dic
+        out_dic = {}
+        out_dic[f'{mode}_loss'] = epoch_loss
+        if self.multilabel:
+            ptype = 'auroc'
+        else:
+            ptype = 'acc'
+        out_dic[f'{mode}_{ptype}_avg'] = perfrom
+        for i,e_c in enumerate(perfrom_cw):
+            out_dic[f'{mode}_{ptype}_c{i}'] = e_c
+
+        return perfrom, epoch_loss, out_dic, output_dic
