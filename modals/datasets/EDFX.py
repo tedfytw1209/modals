@@ -11,9 +11,9 @@ from .base import BaseDataset
 import pandas as pd
 from mne import set_log_level
 from braindecode.datasets.sleep_physionet import SleepPhysionet
-from braindecode.datautil.windowers import create_windows_from_events
+from braindecode.preprocessing.windowers import create_windows_from_events
 #from braindecode.preprocessing.windowers import create_windows_from_events
-from braindecode.datautil.preprocess import zscore, MNEPreproc, NumpyPreproc,preprocess
+from braindecode.preprocessing.preprocess import MNEPreproc, NumpyPreproc,preprocess
 
 
 MAX_LENGTH = 3000
@@ -295,7 +295,8 @@ class EDFX(BaseDataset):
             mapping=TARGETS_MAPPING, verbose=False,
         )
         if should_normalize:
-            preprocess(windows_dataset, [MNEPreproc(fn=zscore)])
+            #preprocess(windows_dataset, [MNEPreproc(fn=zscore)])
+            pass
         print(len(windows_dataset))
         sample = windows_dataset[0]
         print(sample[0])
