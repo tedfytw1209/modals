@@ -25,6 +25,8 @@ class MIMICLT(Dataset):
             raise ValueError(f"Invalid mode: {mode}. Please choose one of 'train', 'valid', or 'test'.")
         self.annotations = pd.read_csv(csv_file)
         self.classes = list(self.annotations.columns[6:])
+        self.num_class = len(self.classes)
+        self.channel = 3
         self.root_dir = root_dir
         self.augmentations = augmentations
 
