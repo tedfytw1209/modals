@@ -1133,7 +1133,7 @@ class TSeriesModelTrainer(TextModelTrainer):
         print(f'=> saved the model {self.file_name} to {path}')
         return path
     
-class ImageModelTrainer(TextModelTrainer):
+class ImageModelTrainer(TSeriesModelTrainer):
     def __init__(self, hparams, name=''):
         self.hparams = hparams
         print(hparams)
