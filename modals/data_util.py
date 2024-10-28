@@ -102,7 +102,7 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
         train = dataset_func(dataroot,mode='train',augmentations=train_transfrom)
         valid = dataset_func(dataroot,mode='valid',augmentations=valid_transfrom)
         test = dataset_func(dataroot,mode='test',augmentations=test_transfrom)
-        classes = ['negative', 'positive']
+        classes = train.classes
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
 

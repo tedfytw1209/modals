@@ -9,7 +9,7 @@ class MIMICLT(Dataset):
         """
         Args:
             root_dir (string): Directory with all the images and CSV files.
-            mode (string): One of 'train', 'val', or 'test' to specify the dataset split.
+            mode (string): One of 'train', 'valid', or 'test' to specify the dataset split.
             augmentations (callable, optional): Optional augmentation to be applied
             on a sample.
         """
@@ -17,11 +17,14 @@ class MIMICLT(Dataset):
         label_root_dir = '/orange/bianjiang/tienyu/MIMIC_CXR/cxr-lt-multi-label-long-tailed-classification-on-chest-x-rays-1.1.0/cxr-lt-2023/'
         if mode == 'train':
             csv_file = os.path.join(label_root_dir, 'train.csv')
-        elif mode == 'val':
+        elif mode == 'valid':
             csv_file = os.path.join(label_root_dir, 'development.csv')
         elif mode == 'test':
             csv_file = os.path.join(label_root_dir, 'test.csv')
+        else: 
+            raise ValueError(f"Invalid mode: {mode}. Please choose one of 'train', 'valid', or 'test'.")
         self.annotations = pd.read_csv(csv_file)
+        self.classes = self.annotations.columns[0,6:].to_numpy()
         self.root_dir = root_dir
         self.augmentations = augmentations
 
