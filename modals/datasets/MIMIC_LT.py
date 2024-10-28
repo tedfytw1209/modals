@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 import torch
 
 class MIMICLT(Dataset):
-    def __init__(self, root_dir, mode='train', augmentations=None):
+    def __init__(self, root_dir, mode='train',transfroms=[], augmentations=[],label_transfroms=[]):
         """
         Args:
             root_dir (string): Directory with all the images and CSV files.
@@ -28,7 +28,9 @@ class MIMICLT(Dataset):
         self.num_class = len(self.classes)
         self.channel = 3
         self.root_dir = root_dir
+        self.transfroms = transfroms
         self.augmentations = augmentations
+        self.label_transfroms = label_transfroms
 
     def __len__(self):
         return len(self.annotations)
@@ -39,7 +41,11 @@ class MIMICLT(Dataset):
         image = Image.open(img_name).convert('RGB')
         labels = self.annotations.iloc[idx, 6:].values
 
-        if self.augmentations:
-            image = self.augmentations(image)
+        for augmentation in self.augmentations:
+            image = augmentation(image)
+        for transfrom in self.transfroms:
+            image = transfrom(image)
+        for label_trans in self.label_transfroms:
+            labels = label_trans(labels)
 
         return image, labels

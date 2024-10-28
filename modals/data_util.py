@@ -58,6 +58,8 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
                           augselect=None,randaug_dic={},fix_policy_list=[],class_wise=False,info_region=None,rd_seed=None,test_augment=False,
                           num_workers=8):
     #rand augment !!! have bug when not using default split
+    image_process = [ToTensor()] #need add normalize
+    label_process = [ToTensor()] #need add normalize
     train_transfrom = []
     class_wise_transfrom = []
     if randaug_dic.get('randaug',False):
@@ -99,9 +101,9 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
     dataset_func = None
     if dataset_name == 'mimic_lt':
         dataset_func = MIMICLT
-        train = dataset_func(dataroot,mode='train',augmentations=train_transfrom)
-        valid = dataset_func(dataroot,mode='valid',augmentations=valid_transfrom)
-        test = dataset_func(dataroot,mode='test',augmentations=test_transfrom)
+        train = dataset_func(dataroot,mode='train',augmentations=train_transfrom,transfroms=image_process,label_transfroms=label_process)
+        valid = dataset_func(dataroot,mode='valid',augmentations=valid_transfrom,transfroms=image_process,label_transfroms=label_process)
+        test = dataset_func(dataroot,mode='test',augmentations=test_transfrom,transfroms=image_process,label_transfroms=label_process)
         classes = train.classes
     else:
         ValueError(f'Invalid dataset name={dataset_name}')
