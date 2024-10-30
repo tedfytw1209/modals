@@ -3,6 +3,7 @@ import pandas as pd
 from PIL import Image
 from torch.utils.data import Dataset
 import torch
+from torchvision import datasets
 
 class MIMICLT(Dataset):
     def __init__(self, root_dir, mode='train',transfroms=[], augmentations=[],label_transfroms=[]):
@@ -31,6 +32,7 @@ class MIMICLT(Dataset):
         self.transfroms = transfroms
         self.augmentations = augmentations
         self.label_transfroms = label_transfroms
+        self.loader = datasets.folder.default_loader
 
     def __len__(self):
         return len(self.annotations)
@@ -38,7 +40,7 @@ class MIMICLT(Dataset):
     def __getitem__(self, idx):
 
         img_name = os.path.join(self.root_dir, self.annotations['path'][idx])
-        image = Image.open(img_name).convert('RGB')
+        image = self.loader(img_name)
         labels = self.annotations.iloc[idx, 6:].values
 
         for augmentation in self.augmentations:
