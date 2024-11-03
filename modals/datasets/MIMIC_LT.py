@@ -27,6 +27,11 @@ class MIMICLT(Dataset):
         self.annotations = pd.read_csv(csv_file)
         self.classes = list(self.annotations.columns[6:])
         self.num_class = len(self.classes)
+        image_names, labels = self.annotations['path'], self.annotations[:, 6:]
+        self.image_names = [image_name for image_name in image_names]
+        self.labels = [label.to_numpy() for label in labels]
+        print('Sample image name: ',self.image_names[0])
+        print('Sample label: ',self.labels[0])
         self.channel = 3
         self.root_dir = root_dir
         self.transfroms = transfroms
@@ -39,9 +44,9 @@ class MIMICLT(Dataset):
 
     def __getitem__(self, idx):
 
-        img_name = os.path.join(self.root_dir, self.annotations['path'][idx])
+        img_name = os.path.join(self.root_dir, self.image_names[idx])
         image = self.loader(img_name)
-        labels = self.annotations.iloc[idx, 6:].values
+        labels = self.labels[idx]
         for transfrom in self.transfroms:
             image = transfrom(image)
         print('Image: ',image)
