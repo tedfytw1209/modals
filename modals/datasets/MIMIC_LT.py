@@ -27,7 +27,7 @@ class MIMICLT(Dataset):
         self.annotations = pd.read_csv(csv_file)
         self.classes = list(self.annotations.columns[6:])
         self.num_class = len(self.classes)
-        image_names, labels = self.annotations['path'], self.annotations[:, 6:]
+        image_names, labels = self.annotations['path'], self.annotations.iloc[:, 6:]
         self.image_names = [image_name for image_name in image_names]
         self.labels = [label.to_numpy() for label in labels]
         print('Sample image name: ',self.image_names[0])
