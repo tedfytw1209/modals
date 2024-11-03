@@ -3,10 +3,10 @@ import random
 
 from modals.augmentation_transforms import NUM_HP_TRANSFORM
 
-RAY_DIR = './ray_results'
+RAY_DIR = '/orange/bianjiang/tienyu/ray_results'
 DATA_DIR = '/mnt/data2/teddy/textdata/'
 EMB_DIR = '/mnt/data2/teddy/emb_dir/'
-CP_DIR = 'checkpoints'
+CP_DIR = '/orange/bianjiang/tienyu/ray_ckpts'
 
 
 def create_parser(mode):
