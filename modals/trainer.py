@@ -1273,7 +1273,9 @@ class ImageModelTrainer(TSeriesModelTrainer):
         targets = []
         print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
-            inputs, labels = batch[0].float().to(self.device), batch[1].long().to(self.device)
+            inputs, labels = batch[0].float().to(self.device), batch[1].to(self.device)
+            print('Input shape: ',inputs.shape)
+            print('Label: ',labels)
             seed_features = self.net.extract_features(inputs)
             features = seed_features
             if self.hparams['manifold_mixup']:
