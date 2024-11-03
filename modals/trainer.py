@@ -1274,7 +1274,7 @@ class ImageModelTrainer(TSeriesModelTrainer):
         print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
             inputs, labels = batch[0].float().to(self.device), batch[1].to(self.device)
-            print('Input shape: ',inputs.shape)
+            print('Input shape: ',inputs.shape, 'mean: ',torch.mean(inputs))
             print('Label: ',labels)
             seed_features = self.net.extract_features(inputs)
             features = seed_features

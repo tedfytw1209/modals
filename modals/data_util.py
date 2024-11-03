@@ -59,34 +59,34 @@ def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='
                           augselect=None,randaug_dic={},fix_policy_list=[],class_wise=False,info_region=None,rd_seed=None,test_augment=False,
                           num_workers=8):
     #rand augment !!! have bug when not using default split
-    image_process = [transforms.PILToTensor()] #need add normalize
-    label_process = [transforms.PILToTensor()] #need add normalize
+    image_process = [transforms.ToTensor()] #need add normalize
+    label_process = [ToTensor()]
     train_transfrom = []
     class_wise_transfrom = []
     if randaug_dic.get('randaug',False):
         print('Using RandAugment')
         train_transfrom.extend([
-            transforms.PILToTensor(),
+            ToTensor(),
             RandAugment(randaug_dic['rand_n'],randaug_dic['rand_m'],rd_seed=rd_seed,augselect=randaug_dic['augselect'])])
     if len(fix_policy_list)>0:
         print('Using Transfrom')
         if class_wise:
             print('Class-Wise') #tmp fix of num_class!!!
             class_wise_transfrom.extend([
-                transforms.PILToTensor(),
+                ToTensor(),
                 TransfromAugment_classwise(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
                 num_class=5,rd_seed=rd_seed,p=randaug_dic['aug_p']) #tmp!!!
             ])
         elif info_region!=None:
             print('Infomation Region')
             train_transfrom.extend([
-                transforms.PILToTensor(),
+                ToTensor(),
                 InfoRAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
                 mode=info_region,rd_seed=rd_seed,p=randaug_dic['aug_p'])
             ])
         else:
             train_transfrom.extend([
-                transforms.PILToTensor(),
+                ToTensor(),
                 TransfromAugment(fix_policy_list,m=randaug_dic['rand_m'],n=randaug_dic['rand_n'],
                 rd_seed=rd_seed,p=randaug_dic['aug_p'])
             ])
