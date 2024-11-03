@@ -57,9 +57,9 @@ def binarize(dataset):
 
 def get_image_dataloaders(dataset_name, valid_size=-1, batch_size=16, dataroot='.data',
                           augselect=None,randaug_dic={},fix_policy_list=[],class_wise=False,info_region=None,rd_seed=None,test_augment=False,
-                          num_workers=8):
+                          num_workers=8,resize = 448):
     #rand augment !!! have bug when not using default split
-    image_process = [transforms.PILToTensor()] #need add normalize
+    image_process = [transforms.ToTensor(), transforms.Resize((resize,resize))] #need add normalize
     label_process = [ToTensor()]
     train_transfrom = []
     class_wise_transfrom = []
