@@ -64,4 +64,5 @@ if __name__ == "__main__":
     root = '/red/bianjiang/VLM_dataset/ReportGeneration/MIMIC-CXR_JPG/'
     dataset = MIMICLT(root_dir=root, mode='train', transfroms=[transforms.ToTensor()],label_transfroms=[torch.tensor])
     print(len(dataset))
-    print(dataset[0])
+    sample = dataset[0]
+    print(sample[0].shape,sample[0].mean())
