@@ -4,6 +4,7 @@ from PIL import Image
 from torch.utils.data import Dataset
 import torch
 from torchvision import datasets
+import torchvision.transforms as transforms
 
 class MIMICLT(Dataset):
     def __init__(self, root_dir, mode='train',transfroms=[], augmentations=[],label_transfroms=[]):
@@ -58,3 +59,9 @@ class MIMICLT(Dataset):
             labels = label_trans(labels)
 
         return image, labels
+
+if __name__ == "__main__":
+    root = '/red/bianjiang/VLM_dataset/ReportGeneration/MIMIC-CXR_JPG/'
+    dataset = MIMICLT(root_dir=root, mode='train', transfroms=[transforms.PILToTensor()])
+    print(len(dataset))
+    print(dataset[0])
