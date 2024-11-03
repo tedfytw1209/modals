@@ -62,6 +62,6 @@ class MIMICLT(Dataset):
 
 if __name__ == "__main__":
     root = '/red/bianjiang/VLM_dataset/ReportGeneration/MIMIC-CXR_JPG/'
-    dataset = MIMICLT(root_dir=root, mode='train', transfroms=[transforms.PILToTensor()])
+    dataset = MIMICLT(root_dir=root, mode='train', transfroms=[transforms.ToTensor()],label_transfroms=[torch.tensor])
     print(len(dataset))
     print(dataset[0])
