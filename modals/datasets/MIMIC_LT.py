@@ -41,6 +41,7 @@ class MIMICLT(Dataset):
 
         img_name = os.path.join(self.root_dir, self.annotations['path'][idx])
         image = self.loader(img_name)
+        print(image)
         labels = self.annotations.iloc[idx, 6:].values
 
         for augmentation in self.augmentations:
