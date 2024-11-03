@@ -28,10 +28,11 @@ class MIMICLT(Dataset):
         self.classes = list(self.annotations.columns[6:])
         self.num_class = len(self.classes)
         image_names, labels = self.annotations['path'], self.annotations.iloc[:, 6:]
+        print('Sample image name: ',self.image_names)
+        print('Sample label: ',self.labels)
         self.image_names = [image_name for image_name in image_names]
         self.labels = [label.to_numpy() for label in labels]
-        print('Sample image name: ',self.image_names[0])
-        print('Sample label: ',self.labels[0])
+        
         self.channel = 3
         self.root_dir = root_dir
         self.transfroms = transfroms
