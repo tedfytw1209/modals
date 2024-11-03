@@ -44,7 +44,7 @@ class MIMICLT(Dataset):
         labels = self.annotations.iloc[idx, 6:].values
         for transfrom in self.transfroms:
             image = transfrom(image)
-        print('Input shape: ',image.shape, 'mean: ',torch.mean(image))
+        print('Image: ',image)
         print('Label: ',labels)
         for augmentation in self.augmentations:
             image = augmentation(image)
