@@ -1159,7 +1159,7 @@ class ImageModelTrainer(TSeriesModelTrainer):
         #kfold or not
         train_val_test_folds = []
         if hparams['kfold']==10:
-            test_fold_idx = tune.suggest.repeater.TRIAL_INDEX
+            test_fold_idx = -1 #tmp change
         elif hparams['kfold']>=0:
             test_fold_idx = hparams['kfold']
         else:
