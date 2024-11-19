@@ -1273,7 +1273,11 @@ class ImageModelTrainer(TSeriesModelTrainer):
         targets = []
         print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
+            print('Batch: ',batch)
             inputs, labels = batch[0].float().to(self.device), batch[1].to(self.device)
+            print('Input shape: ',inputs.shape)
+            print('Input mean ',inputs.mean())
+            print('Label: ',labels)
             seed_features = self.net.extract_features(inputs)
             features = seed_features
             if self.hparams['manifold_mixup']:
@@ -1289,6 +1293,7 @@ class ImageModelTrainer(TSeriesModelTrainer):
                 except Exception as e:
                     print(e)
                     print('tmp ignore error')
+            print('Feature shape: ',features.shape)
             outputs = self.net.classify(features)  # Forward Propagation
             if self.hparams['mixup']:
                 inputs, targets_a, targets_b, lam = mixup_data(outputs, labels,
