@@ -1295,6 +1295,7 @@ class ImageModelTrainer(TSeriesModelTrainer):
                     print('tmp ignore error')
             print('Feature shape: ',features.shape)
             outputs = self.net.classify(features)  # Forward Propagation
+            print('Output: ',outputs)
             if self.hparams['mixup']:
                 inputs, targets_a, targets_b, lam = mixup_data(outputs, labels,
                                                                self.hparams['alpha'], use_cuda=True)
@@ -1316,6 +1317,7 @@ class ImageModelTrainer(TSeriesModelTrainer):
             clf_losses += c_loss.item()
             # total loss
             loss = c_loss
+            print('Loss: ',loss)
             if self.hparams['metric_learning']:
                 m_loss = self.metric_loss(seed_features, labels)[0]
                 metric_losses += m_loss.item()
