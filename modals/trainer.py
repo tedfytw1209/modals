@@ -1271,13 +1271,13 @@ class ImageModelTrainer(TSeriesModelTrainer):
         confusion_matrix = torch.zeros(len(self.classes), len(self.classes))
         preds = []
         targets = []
-        print(f'\n=> Training Epoch #{cur_epoch}')
+        #print(f'\n=> Training Epoch #{cur_epoch}')
         for batch_idx, batch in enumerate(self.train_loader):
-            print('Batch: ',batch)
+            #print('Batch: ',batch)
             inputs, labels = batch[0].float().to(self.device), batch[1].to(self.device)
-            print('Input shape: ',inputs.shape)
-            print('Input mean ',inputs.mean())
-            print('Label: ',labels)
+            #print('Input shape: ',inputs.shape)
+            #print('Input mean ',inputs.mean())
+            #print('Label: ',labels)
             seed_features = self.net.extract_features(inputs)
             features = seed_features
             if self.hparams['manifold_mixup']:
@@ -1293,9 +1293,9 @@ class ImageModelTrainer(TSeriesModelTrainer):
                 except Exception as e:
                     print(e)
                     print('tmp ignore error')
-            print('Feature shape: ',features.shape)
+            #print('Feature shape: ',features.shape)
             outputs = self.net.classify(features)  # Forward Propagation
-            print('Output: ',outputs)
+            #print('Output: ',outputs)
             if self.hparams['mixup']:
                 inputs, targets_a, targets_b, lam = mixup_data(outputs, labels,
                                                                self.hparams['alpha'], use_cuda=True)
@@ -1317,7 +1317,7 @@ class ImageModelTrainer(TSeriesModelTrainer):
             clf_losses += c_loss.item()
             # total loss
             loss = c_loss
-            print('Loss: ',loss)
+            #print('Loss: ',loss)
             if self.hparams['metric_learning']:
                 m_loss = self.metric_loss(seed_features, labels)[0]
                 metric_losses += m_loss.item()
