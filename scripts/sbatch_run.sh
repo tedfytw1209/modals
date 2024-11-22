@@ -14,6 +14,6 @@
 module load conda
 conda activate caap
 
-python -u train_image.py --model_name resnet50 --dataset mimic_lt --valid_size 1 --subtrain_ratio 1.0 --policy_epochs 50 --epochs 50 \
+python -u train_image.py --model_name resnet50 --dataset mimic_lt --valid_size 1 --subtrain_ratio 1.0 --policy_epochs 5 --epochs 5 \
  --name mimiclt_noaug --temperature 1 --bs 64 --lr 0.01 --wd 0.01  --data_dir /red/bianjiang/VLM_dataset/ReportGeneration/MIMIC-CXR_JPG/ \
  --kfold 10 --gpu 1 --cpu 8 --ray_name ray_mimiclt_noaug --multilabel
