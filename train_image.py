@@ -55,12 +55,12 @@ def main(FLAGS, hparams):
     for e in range(start_epoch+1, hparams['num_epochs']+1):
         step_dic = {'epoch':e}
         train_acc, valid_acc, train_dic, val_output_dic = trainer.run_model(e,trail_id)
-        info_dict = train_dic.update(val_output_dic)
+        info_dict = train_dic
         step_dic.update(info_dict)
         if e % 20 == 0:
             # print(hparams)
             trainer.save_checkpoint(hparams['checkpoint_dir'], e)
-        test_acc, test_loss, info_dict_test = trainer._test(e, trail_id, 'test')
+        test_acc, test_loss, info_dict_test, output_dic_test = trainer._test(e, trail_id, 'test')
         if valid_acc>best_valid_acc:
             best_valid_acc = valid_acc
             trainer.save_checkpoint(hparams['checkpoint_dir'], e,title='best')
