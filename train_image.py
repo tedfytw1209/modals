@@ -54,7 +54,8 @@ def main(FLAGS, hparams):
     best_valid_acc,best_model = 0,None
     for e in range(start_epoch+1, hparams['num_epochs']+1):
         step_dic = {'epoch':e}
-        train_acc, valid_acc, info_dict = trainer.run_model(e,trail_id)
+        train_acc, valid_acc, train_dic, val_output_dic = trainer.run_model(e,trail_id)
+        info_dict = train_dic.update(val_output_dic)
         step_dic.update(info_dict)
         if e % 20 == 0:
             # print(hparams)
