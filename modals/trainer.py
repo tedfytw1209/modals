@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
+from torchvision import  models
 from networks.blstm import BiLSTM,LSTM
 from networks.LSTM import LSTM_ecg,LSTM_ptb
 from networks.LSTM_attention import LSTM_attention
@@ -202,6 +203,14 @@ def build_model(model_name, vocab, n_class, z_size=2, dataset='',max_len=1000,hz
                   }
         net = SleepStagerChambon2018(config)
         z_size = net.len_last_layer
+    elif model_name == 'densenet131':
+        net = models.densenet121(pretrained=True)
+        z_size = net.classifier.in_features
+        net.classifier = nn.Sequential(nn.Linear(z_size, n_class), nn.Sigmoid()) #change classifer
+    elif model_name == 'resnet50': #decoupling_method == 'cRT' is best
+        net = models.resnet50(pretrained=True)
+        z_size = net.fc.in_features
+        net.fc = nn.Sequential(nn.Linear(z_size, n_class), nn.Sigmoid()) #change classifer
     else:
         ValueError(f'Invalid model name={model_name}')
 
